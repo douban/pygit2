@@ -315,6 +315,13 @@ Tree_diff(Tree *self, PyObject *args, PyObject *kwds)
         int i, paths_length = 0;
         PyObject *py_path = NULL;
         paths_length = PyList_Size(py_paths);
+        for (i = 0; i < paths_length; i++) {
+            py_path = PyList_GetItem(py_paths, i);
+            if (!PyObject_TypeCheck(py_path, &PyString_Type)) {
+                PyErr_SetObject(PyExc_TypeError, py_path);
+                return NULL;
+            }
+        }
         opts.pathspec.count = paths_length;
         opts.pathspec.strings = (char **) PyMem_Malloc(paths_length * sizeof (char *));
         for (i = 0; i < paths_length; i++) {
