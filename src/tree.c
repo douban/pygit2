@@ -282,6 +282,8 @@ PyDoc_STRVAR(Tree_diff__doc__,
   "    If not given compare diff against working dir. Possible valid\n"
   "    arguments are instances of Tree or Index.\n"
   "\n"
+  "context_lines\n"
+  "\n"
   "flags\n"
   "    TODO");
 
@@ -294,14 +296,40 @@ Tree_diff(Tree *self, PyObject *args, PyObject *kwds)
     git_index* index;
     git_repository *repo;
     int err, empty_tree = 0;
-    char *keywords[] = {"obj", "flags", "empty_tree", NULL};
+    char *keywords[] = {"obj", "flags", "empty_tree", "context_lines", "paths", NULL};
 
     Diff *py_diff;
     PyObject *py_obj = NULL;
+    PyObject *py_paths = NULL;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|Oii", keywords,
-                                     &py_obj, &opts.flags, &empty_tree))
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|OiiiO", keywords,
+                                     &py_obj, &opts.flags, &empty_tree,
+                                     &opts.context_lines, &py_paths))
         return NULL;
+
+    if (py_paths != NULL) {
+        if (!PyObject_TypeCheck(py_paths, &PyList_Type)) {
+            PyErr_SetObject(PyExc_TypeError, py_paths);
+            return NULL;
+        }
+        int i, paths_length = 0;
+        PyObject *py_path = NULL;
+        paths_length = PyList_Size(py_paths);
+        for (i = 0; i < paths_length; i++) {
+            py_path = PyList_GetItem(py_paths, i);
+            if (!PyObject_TypeCheck(py_path, &PyString_Type)) {
+                PyErr_SetObject(PyExc_TypeError, py_path);
+                return NULL;
+            }
+        }
+        opts.pathspec.count = paths_length;
+        opts.pathspec.strings = (char **) PyMem_Malloc(paths_length * sizeof (char *));
+        for (i = 0; i < paths_length; i++) {
+            py_path = PyList_GetItem(py_paths, i);
+            opts.pathspec.strings[i] = PyString_AsString(py_path);
+        }
+
+    }
 
     repo = git_tree_owner(self->tree);
     if (py_obj == NULL) {
@@ -319,9 +347,14 @@ Tree_diff(Tree *self, PyObject *args, PyObject *kwds)
         err = git_diff_tree_to_index(&diff, repo, self->tree, index, &opts);
 
     } else {
+        if (py_paths != NULL)
+            PyMem_Free(opts.pathspec.strings);
         PyErr_SetObject(PyExc_TypeError, py_obj);
         return NULL;
     }
+
+    if (py_paths != NULL)
+        PyMem_Free(opts.pathspec.strings);
 
     if (err < 0)
         return Error_set(err);
