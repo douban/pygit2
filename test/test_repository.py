@@ -42,7 +42,7 @@ from os.path import join, realpath
 from pygit2 import GIT_OBJ_ANY, GIT_OBJ_BLOB, GIT_OBJ_COMMIT
 from pygit2 import (
     init_repository, clone_repository, discover_repository,
-    Reference, hashfile
+    Reference, hashfile, is_repository
 )
 from pygit2 import Oid
 import pygit2
@@ -171,7 +171,6 @@ class RepositoryTest(utils.BareRepoTestCase):
         written_sha1 = self.repo.create_blob(data)
         self.assertEqual(hashed_sha1, written_sha1)
 
-
 class RepositoryTest_II(utils.RepoTestCase):
 
     def test_is_empty(self):
@@ -241,6 +240,15 @@ class RepositoryTest_II(utils.RepoTestCase):
         self.assertEqual(commit.hex,
                          'acecd5ea2924a4b900e7e149496e1f4b57976e51')
 
+class IsRepositoryTest(utils.RepoTestCase):
+    
+    def test_is_repository(self):
+        directory = realpath(self.repo.workdir)
+
+        self.assertRaises(TypeError, is_repository)
+        self.assertRaises(TypeError, is_repository, '', '')
+        self.assertFalse(is_repository("sadgasdfasdfasfdasfasdfsafasdfasdf"))
+        self.assertTrue(is_repository(directory))
 
 class NewRepositoryTest(utils.NoRepoTestCase):
 
@@ -283,6 +291,7 @@ class DiscoverRepositoryTest(utils.NoRepoTestCase):
         subdir = os.path.join(self._temp_dir, "test1", "test2")
         os.makedirs(subdir)
         self.assertEqual(repo.path, discover_repository(subdir))
+
 
 
 class EmptyRepositoryTest(utils.EmptyRepoTestCase):
