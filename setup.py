@@ -52,12 +52,14 @@ if sys.version_info[0] == 2:
 else:
     u = str
 
+print('checkout libgit2 source')
 popen = Popen(['git', 'submodule', 'update', '--init'], stdout=PIPE, stderr=PIPE)
 stdoutdata, stderrdata = popen.communicate()
 if popen.returncode != 0:
     print(stderrdata)
     sys.exit()
 
+pygit2_libs = ['git2']
 # Use environment variable LIBGIT2 to set your own libgit2 configuration.
 libgit2_path = os.getenv("LIBGIT2")
 if libgit2_path:
@@ -73,8 +75,11 @@ else:
         cwd = os.path.dirname(os.path.realpath(__file__))
         libgit2_dir = os.path.join(cwd, 'vendor', 'libgit2')
         libgit2_lib_path = cwd + "/libgit2_embed.a"
+        if os.path.isfile(libgit2_lib_path):
+            os.remove(libgit2_lib_path)
         if not os.path.isfile(libgit2_lib_path):
             os.chdir(libgit2_dir)
+            print('build libgit2 embed')
             popen = Popen(['make', '-f', 'Makefile.embed'], stdout=PIPE, stderr=PIPE)
             stdoutdata, stderrdata = popen.communicate()
             if popen.returncode != 0:
@@ -85,6 +90,7 @@ else:
         libgit2_bin = ''
         libgit2_include = os.path.join(libgit2_dir, 'include')
         libgit2_lib = cwd
+        pygit2_libs = ['git2_embed']
 
 pygit2_exts = [os.path.join('src', name) for name in os.listdir('src')
                if name.endswith('.c')]
@@ -210,6 +216,6 @@ setup(name='pygit2',
           Extension('_pygit2', pygit2_exts,
                     include_dirs=[libgit2_include, 'include'],
                     library_dirs=[libgit2_lib],
-                    libraries=['git2_embed', 'git2']),
+                    libraries=pygit2_libs),
       ],
       cmdclass=cmdclass)
