@@ -829,7 +829,7 @@ Repository_listall_references(Repository *self, PyObject *args)
         return NULL;
 
     /* 2- Get the C result */
-    err = git_reference_list(&c_result, self->repo, list_flags);
+    err = git_reference_list(&c_result, self->repo);
     if (err < 0)
         return Error_set(err);
 

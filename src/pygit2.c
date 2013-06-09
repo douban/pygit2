@@ -64,7 +64,7 @@ extern PyTypeObject RemoteType;
 extern PyTypeObject NoteType;
 extern PyTypeObject NoteIterType;
 
-PyDoc_STRVAR(is_repository__doc__, 
+PyDoc_STRVAR(is_repository__doc__,
   "is_repository(path) -> Boolean\n"
   "\n"
   "Test if the path is a git repository.");
@@ -75,7 +75,7 @@ is_repository(PyObject *self, PyObject *args) {
     int err;
 
     git_repository *repo;
-    
+
     if (!PyArg_ParseTuple(args, "s", &path)) {
         return NULL;
     }
@@ -158,26 +158,26 @@ clone_repository(PyObject *self, PyObject *args) {
     unsigned int bare;
     const char *remote_name, *push_url, *fetch_spec;
     const char *push_spec, *checkout_branch;
+    const git_error *git_err;
     int err;
+    git_clone_options opts = GIT_CLONE_OPTIONS_INIT;
 
-    if (!PyArg_ParseTuple(args, "zzIzzzzz", 
-                &url, &path, &bare, &remote_name, &push_url, 
+    if (!PyArg_ParseTuple(args, "zzIzzzzz",
+                &url, &path, &bare, &remote_name, &push_url,
                 &fetch_spec, &push_spec, &checkout_branch))
         return NULL;
 
-    git_clone_options opts = {
-        .version=1,
-        .bare=bare,
-        .remote_name=remote_name,
-        .pushurl=push_url,
-        .fetch_spec=fetch_spec,
-        .push_spec=push_spec,
-        .checkout_branch=checkout_branch
-    };
+    opts.bare = bare;
+    opts.remote_name = remote_name;
+    opts.pushurl = push_url;
+    opts.fetch_spec = fetch_spec;
+    opts.push_spec = push_spec;
+    opts.checkout_branch = checkout_branch;
 
     err = git_clone(&repo, url, path, &opts);
-    if (err < 0)
+    if (err < 0) {
         return Error_set_str(err, path);
+    }
 
     git_repository_free(repo);
     Py_RETURN_NONE;
@@ -264,7 +264,7 @@ PyMethodDef module_methods[] = {
      discover_repository__doc__},
     {"hashfile", hashfile, METH_VARARGS, hashfile__doc__},
     {"hash", hash, METH_VARARGS, hash__doc__},
-    {"is_repository", is_repository, METH_VARARGS, is_repository__doc__}, 
+    {"is_repository", is_repository, METH_VARARGS, is_repository__doc__},
     {NULL}
 };
 
