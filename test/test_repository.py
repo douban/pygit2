@@ -241,7 +241,7 @@ class RepositoryTest_II(utils.RepoTestCase):
                          'acecd5ea2924a4b900e7e149496e1f4b57976e51')
 
 class IsRepositoryTest(utils.RepoTestCase):
-    
+
     def test_is_repository(self):
         directory = realpath(self.repo.workdir)
 
@@ -341,7 +341,7 @@ class CloneRepositoryTest(utils.NoRepoTestCase):
     def test_clone_fetch_spec(self):
         repo_path = "./test/data/testrepo.git/"
         repo = clone_repository(
-            repo_path, self._temp_dir, fetch_spec="refs/heads/test"
+            repo_path, self._temp_dir, fetch_spec="+refs/heads/master:refs/heads/test"
         )
         self.assertFalse(repo.is_empty)
         # FIXME: When pygit2 retrieve the fetchspec we passed to git clone.
@@ -352,7 +352,7 @@ class CloneRepositoryTest(utils.NoRepoTestCase):
     def test_clone_push_spec(self):
         repo_path = "./test/data/testrepo.git/"
         repo = clone_repository(
-            repo_path, self._temp_dir, push_spec="refs/heads/test"
+            repo_path, self._temp_dir, push_spec="+refs/heads/master:refs/heads/test"
         )
         self.assertFalse(repo.is_empty)
         # FIXME: When pygit2 supports retrieving the pushspec parameter,

@@ -315,10 +315,10 @@ Config_add_file(Config *self, PyObject *args, PyObject *kwds)
     char *keywords[] = {"path", "level", "force", NULL};
     int err;
     char *path;
-    unsigned int level = 0;
+    int level = -1;
     int force = 0;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "s|Ii", keywords,
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "s|ii", keywords,
                                      &path, &level, &force))
         return NULL;
 
