@@ -42,6 +42,7 @@
 /* Python 2 support */
 #if PY_MAJOR_VERSION == 2
   #define PyLong_FromSize_t PyInt_FromSize_t
+  #define PyLong_AsSize_t (size_t)PyInt_AsSsize_t
   #define PyLong_AsLong PyInt_AsLong
   #undef PyLong_Check
   #define PyLong_Check PyInt_Check
@@ -84,7 +85,8 @@
 
 PYGIT2_FN_UNUSED
 Py_LOCAL_INLINE(PyObject*)
-to_unicode_n(const char *value, size_t len, const char *encoding, const char *errors)
+to_unicode_n(const char *value, size_t len, const char *encoding,
+             const char *errors)
 {
     if (encoding == NULL) {
         /* If the encoding is not explicit, it may not be UTF-8, so it

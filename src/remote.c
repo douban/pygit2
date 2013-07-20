@@ -134,29 +134,21 @@ PyDoc_STRVAR(Remote_fetchspec__doc__,
 PyObject *
 Remote_fetchspec__get__(Remote *self)
 {
-    PyObject *py_tuple = NULL;
-    PyObject *py_string = NULL;
-    git_strarray refspecs;
-    int err;
-    int index;
+    PyObject* py_tuple = NULL;
+    const git_refspec * refspec;
 
-    err = git_remote_get_fetch_refspecs(&refspecs, self->remote);
-    if (err < 0)
-        return Error_set(err);
+    refspec = git_remote_fetchspec(self->remote);
+    if  (refspec != NULL) {
+        py_tuple = Py_BuildValue(
+            "(ss)",
+            git_refspec_src(refspec),
+            git_refspec_dst(refspec)
+        );
 
-    py_tuple = PyTuple_New(refspecs.count);
-    for (index = 0; index < refspecs.count; index++) {
-        py_string = to_path(refspecs.strings[index]);
-        if (py_string == NULL) {
-            Py_CLEAR(py_tuple);
-            goto out;
-        }
-        PyTuple_SET_ITEM(py_tuple, index, py_string);
+        return py_tuple;
     }
 
-out:
-    git_strarray_free(&refspecs);
-    return py_tuple;
+    return Error_set(GIT_ENOTFOUND);
 }
 
 int
@@ -174,7 +166,7 @@ Remote_fetchspec__set__(Remote *self, PyObject* py_tuple)
     buf = (char*) calloc(length, sizeof(char));
     if (buf != NULL) {
         sprintf(buf, "+%s:%s", src, dst);
-        err = git_remote_add_fetch(self->remote, buf);
+        err = git_remote_set_fetchspec(self->remote, buf);
         free(buf);
 
         if (err == GIT_OK)
@@ -184,6 +176,44 @@ Remote_fetchspec__set__(Remote *self, PyObject* py_tuple)
     }
 
     return -1;
+}
+
+
+PyDoc_STRVAR(Remote_refspec_count__doc__, "Number of refspecs.");
+
+PyObject *
+Remote_refspec_count__get__(Remote *self)
+{
+    size_t count;
+
+    count = git_remote_refspec_count(self->remote);
+    return PyLong_FromSize_t(count);
+}
+
+
+PyDoc_STRVAR(Remote_get_refspec__doc__,
+    "get_refspec(n) -> (str, str)\n"
+    "\n"
+    "Return the refspec at the given position.");
+
+PyObject *
+Remote_get_refspec(Remote *self, PyObject *value)
+{
+    size_t n;
+    const git_refspec *refspec;
+
+    n = PyLong_AsSize_t(value);
+    if (PyErr_Occurred())
+        return NULL;
+
+    refspec = git_remote_get_refspec(self->remote, n);
+    if (refspec == NULL) {
+        PyErr_SetObject(PyExc_IndexError, value);
+        return NULL;
+    }
+
+    return Py_BuildValue("(ss)", git_refspec_src(refspec),
+                                 git_refspec_dst(refspec));
 }
 
 
@@ -223,15 +253,37 @@ Remote_fetch(Remote *self, PyObject *args)
 }
 
 
+PyDoc_STRVAR(Remote_save__doc__,
+  "save()\n\n"
+  "Save a remote to its repository configuration.");
+
+PyObject *
+Remote_save(Remote *self, PyObject *args)
+{
+    int err;
+
+    err = git_remote_save(self->remote);
+    if (err == GIT_OK) {
+        Py_RETURN_NONE;
+    }
+    else {
+        return Error_set(err);
+    }
+}
+
+
 PyMethodDef Remote_methods[] = {
     METHOD(Remote, fetch, METH_NOARGS),
+    METHOD(Remote, save, METH_NOARGS),
+    METHOD(Remote, get_refspec, METH_O),
     {NULL}
 };
 
 PyGetSetDef Remote_getseters[] = {
     GETSET(Remote, name),
     GETSET(Remote, url),
-    GETSET(Remote, fetchspec),
+    GETTER(Remote, refspec_count),
+    GETSET(Remote, fetchspec), /* FIXME: compatibility */
     {NULL}
 };
 
