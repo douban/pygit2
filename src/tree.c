@@ -351,21 +351,6 @@ Tree_diff(Tree *self, PyObject *args, PyObject *kwds)
         if (py_paths != NULL)
             PyMem_Free(opts.pathspec.strings);
         PyErr_SetObject(PyExc_TypeError, py_obj);
-        else
-            err = git_diff_tree_to_workdir(&diff, repo, self->tree, &opts);
-
-    } else if (PyObject_TypeCheck(py_obj, &TreeType)) {
-        tree = ((Tree *)py_obj)->tree;
-        err = git_diff_tree_to_tree(&diff, repo, self->tree, tree, &opts);
-
-    } else if (PyObject_TypeCheck(py_obj, &IndexType)) {
-        index = ((Index *)py_obj)->index;
-        err = git_diff_tree_to_index(&diff, repo, self->tree, index, &opts);
-
-    } else {
-        if (py_paths != NULL)
-            PyMem_Free(opts.pathspec.strings);
-        PyErr_SetObject(PyExc_TypeError, py_obj);
         return NULL;
     }
 

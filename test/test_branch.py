@@ -138,7 +138,7 @@ class BranchesEmptyRepoTestCase(utils.EmptyRepoTestCase):
 
     def test_listall_branches(self):
         branches = sorted(self.repo.listall_branches(pygit2.GIT_BRANCH_REMOTE))
-        self.assertEqual(branches, ['origin/master'])
+        self.assertEqual(branches, ['origin/master', 'origin/test'])
 
     def test_branch_remote_name(self):
         self.repo.remotes[0].fetch()
