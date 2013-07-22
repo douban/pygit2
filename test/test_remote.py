@@ -39,12 +39,13 @@ REMOTE_FETCHSPEC_DST = 'refs/remotes/origin/*'
 REMOTE_REPO_OBJECTS = 30
 REMOTE_REPO_BYTES = 2758
 
+
 class RepositoryTest(utils.RepoTestCase):
     def test_remote_create(self):
         name = 'upstream'
         url = 'git://github.com/libgit2/pygit2.git'
 
-        remote = self.repo.create_remote(name, url);
+        remote = self.repo.create_remote(name, url)
 
         self.assertEqual(type(remote), pygit2.Remote)
         self.assertEqual(name, remote.name)
@@ -74,9 +75,21 @@ class RepositoryTest(utils.RepoTestCase):
         self.assertRaisesAssign(ValueError, remote, 'url', '')
 
 
-    def test_remote_fetchspec(self):
+    def test_refspec(self):
         remote = self.repo.remotes[0]
 
+        self.assertEqual(remote.refspec_count, 1)
+        refspec = remote.get_refspec(0)
+        self.assertEqual(refspec[0], REMOTE_FETCHSPEC_SRC)
+        self.assertEqual(refspec[1], REMOTE_FETCHSPEC_DST)
+
+#       new_fetchspec = ('refs/foo/*', 'refs/remotes/foo/*')
+#       remote.fetchspec = new_fetchspec
+#       refspec = remote.get_refspec(0)
+#       self.assertEqual(new_fetchspec[0], refspec[0])
+#       self.assertEqual(new_fetchspec[1], refspec[1])
+
+        # FIXME: compatibility
         # FIXME: create spec class
         fetchspec = remote.fetchspec[0]
         spec = '+%s:%s' % (REMOTE_FETCHSPEC_SRC, REMOTE_FETCHSPEC_DST)
@@ -84,6 +97,7 @@ class RepositoryTest(utils.RepoTestCase):
         #self.assertEqual(REMOTE_FETCHSPEC_SRC, remote.fetchspec[0])
         #self.assertEqual(REMOTE_FETCHSPEC_DST, remote.fetchspec[1])
 
+        # FIXME: compatibility
         new_fetchspec = ('refs/foo/*', 'refs/remotes/foo/*')
         remote.fetchspec = new_fetchspec
         spec = '+%s:%s' % new_fetchspec
@@ -101,8 +115,21 @@ class RepositoryTest(utils.RepoTestCase):
 
         name = 'upstream'
         url = 'git://github.com/libgit2/pygit2.git'
-        remote = self.repo.create_remote(name, url);
+        remote = self.repo.create_remote(name, url)
         self.assertTrue(remote.name in [x.name for x in self.repo.remotes])
+
+
+    def test_remote_save(self):
+        remote = self.repo.remotes[0]
+
+        remote.name = 'new-name'
+        remote.url = 'http://example.com/test.git'
+
+        remote.save()
+
+        self.assertEqual('new-name', self.repo.remotes[0].name)
+        self.assertEqual('http://example.com/test.git',
+                         self.repo.remotes[0].url)
 
 
 class EmptyRepositoryTest(utils.EmptyRepoTestCase):

@@ -94,20 +94,18 @@ Object_type__get__(Object *self)
 PyDoc_STRVAR(Object_read_raw__doc__,
   "read_raw()\n"
   "\n"
-  "Returns the byte string with the raw contents of the of the object.");
+  "Returns the byte string with the raw contents of the object.");
 
 PyObject *
 Object_read_raw(Object *self)
 {
-    git_repository *repo;
     const git_oid *oid;
     git_odb_object *obj;
     PyObject *aux;
 
-    repo = git_object_owner(self->obj);
     oid = git_object_id(self->obj);
 
-    obj = Repository_read_raw(repo, oid, GIT_OID_HEXSZ);
+    obj = Repository_read_raw(self->repo->repo, oid, GIT_OID_HEXSZ);
     if (obj == NULL)
         return NULL;
 

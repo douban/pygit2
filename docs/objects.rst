@@ -129,7 +129,7 @@ them to the Git object database:
 
 There are also some functions to calculate the oid for a byte string without
 creating the blob object:
- 
+
 .. autofunction:: pygit2.hash
 .. autofunction:: pygit2.hashfile
 
@@ -159,7 +159,9 @@ interfaces.
 
    Return an iterator over the entries of the tree.
 
-.. automethod:: pygit2.Tree.diff
+.. automethod:: pygit2.Tree.diff_to_tree
+.. automethod:: pygit2.Tree.diff_to_workdir
+.. automethod:: pygit2.Tree.diff_to_index
 
 Tree entries
 ------------

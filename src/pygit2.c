@@ -59,6 +59,7 @@ extern PyTypeObject ConfigType;
 extern PyTypeObject ReferenceType;
 extern PyTypeObject RefLogIterType;
 extern PyTypeObject RefLogEntryType;
+extern PyTypeObject BranchType;
 extern PyTypeObject SignatureType;
 extern PyTypeObject RemoteType;
 extern PyTypeObject NoteType;
@@ -163,8 +164,8 @@ clone_repository(PyObject *self, PyObject *args) {
     git_clone_options opts = GIT_CLONE_OPTIONS_INIT;
 
     if (!PyArg_ParseTuple(args, "zzIzzzzz",
-                &url, &path, &bare, &remote_name, &push_url,
-                &fetch_spec, &push_spec, &checkout_branch))
+                          &url, &path, &bare, &remote_name, &push_url,
+                          &fetch_spec, &push_spec, &checkout_branch))
         return NULL;
 
     opts.bare = bare;
@@ -175,9 +176,8 @@ clone_repository(PyObject *self, PyObject *args) {
     opts.checkout_branch = checkout_branch;
 
     err = git_clone(&repo, url, path, &opts);
-    if (err < 0) {
-        return Error_set_str(err, path);
-    }
+    if (err < 0)
+        return Error_set(err);
 
     git_repository_free(repo);
     Py_RETURN_NONE;
@@ -259,7 +259,7 @@ hash(PyObject *self, PyObject *args)
 PyMethodDef module_methods[] = {
     {"init_repository", init_repository, METH_VARARGS, init_repository__doc__},
     {"clone_repository", clone_repository, METH_VARARGS,
-        clone_repository__doc__},
+     clone_repository__doc__},
     {"discover_repository", discover_repository, METH_VARARGS,
      discover_repository__doc__},
     {"hashfile", hashfile, METH_VARARGS, hashfile__doc__},
@@ -356,6 +356,14 @@ moduleinit(PyObject* m)
     ADD_CONSTANT_INT(m, GIT_REF_LISTALL)
 
     /*
+     * Branches
+     */
+    INIT_TYPE(BranchType, &ReferenceType, PyType_GenericNew);
+    ADD_TYPE(m, Branch)
+    ADD_CONSTANT_INT(m, GIT_BRANCH_LOCAL)
+    ADD_CONSTANT_INT(m, GIT_BRANCH_REMOTE)
+
+    /*
      * Index & Working copy
      */
     INIT_TYPE(IndexType, NULL, PyType_GenericNew)
@@ -407,6 +415,14 @@ moduleinit(PyObject* m)
     ADD_CONSTANT_INT(m, GIT_DIFF_INCLUDE_UNTRACKED)
     ADD_CONSTANT_INT(m, GIT_DIFF_INCLUDE_UNMODIFIED)
     ADD_CONSTANT_INT(m, GIT_DIFF_RECURSE_UNTRACKED_DIRS)
+    ADD_CONSTANT_INT(m, GIT_DIFF_RECURSE_UNTRACKED_DIRS)
+    ADD_CONSTANT_INT(m, GIT_DIFF_DISABLE_PATHSPEC_MATCH)
+    ADD_CONSTANT_INT(m, GIT_DIFF_DELTAS_ARE_ICASE)
+    ADD_CONSTANT_INT(m, GIT_DIFF_INCLUDE_UNTRACKED_CONTENT)
+    ADD_CONSTANT_INT(m, GIT_DIFF_SKIP_BINARY_CHECK)
+    ADD_CONSTANT_INT(m, GIT_DIFF_INCLUDE_TYPECHANGE)
+    ADD_CONSTANT_INT(m, GIT_DIFF_INCLUDE_TYPECHANGE_TREES)
+    ADD_CONSTANT_INT(m, GIT_DIFF_RECURSE_IGNORED_DIRS)
     /* Flags for diff find similar */
     /* --find-renames */
     ADD_CONSTANT_INT(m, GIT_DIFF_FIND_RENAMES)

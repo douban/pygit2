@@ -25,22 +25,17 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef INCLUDE_pygit2_diff_h
-#define INCLUDE_pygit2_diff_h
+#ifndef INCLUDE_pygit2_branch_h
+#define INCLUDE_pygit2_branch_h
 
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <git2.h>
-#include "types.h"
 
-#define DIFF_CHECK_TYPES(_x, _y, _type_x, _type_y) \
-                  PyObject_TypeCheck(_x, _type_x) && \
-                  PyObject_TypeCheck(_y, _type_y)
+PyObject* Branch_delete(Branch *self, PyObject *args);
+PyObject* Branch_is_head(Branch *self);
+PyObject* Branch_move(Branch *self, PyObject *args);
 
-
-PyObject* Diff_changes(Diff *self);
-PyObject* Diff_patch(Diff *self);
-
-PyObject* wrap_diff(git_diff_list *diff, Repository *repo);
+PyObject* wrap_branch(git_reference *c_reference, Repository *repo);
 
 #endif

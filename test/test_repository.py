@@ -285,7 +285,9 @@ class InitRepositoryTest(utils.NoRepoTestCase):
         self.assertTrue(repo.is_bare)
 
 
+
 class DiscoverRepositoryTest(utils.NoRepoTestCase):
+
     def test_discover_repo(self):
         repo = init_repository(self._temp_dir, False)
         subdir = os.path.join(self._temp_dir, "test1", "test2")
@@ -307,7 +309,9 @@ class EmptyRepositoryTest(utils.EmptyRepoTestCase):
         self.assertFalse(self.repo.head_is_detached)
 
 
+
 class CloneRepositoryTest(utils.NoRepoTestCase):
+
     def test_clone_repository(self):
         repo_path = "./test/data/testrepo.git/"
         repo = clone_repository(repo_path, self._temp_dir)
@@ -328,15 +332,6 @@ class CloneRepositoryTest(utils.NoRepoTestCase):
         self.assertFalse(repo.is_empty)
         self.assertEqual(repo.remotes[0].name, "custom_remote")
 
-    def test_clone_push_url(self):
-        repo_path = "./test/data/testrepo.git/"
-        repo = clone_repository(
-            repo_path, self._temp_dir, push_url="custom_push_url"
-        )
-        self.assertFalse(repo.is_empty)
-        # FIXME: When pygit2 supports retrieving the pushurl parameter,
-        # enable this test
-        # self.assertEqual(repo.remotes[0].pushurl, "custom_push_url")
 
     def test_clone_fetch_spec(self):
         repo_path = "./test/data/testrepo.git/"

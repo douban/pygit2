@@ -159,6 +159,7 @@ out:
     return py_tuple;
 }
 
+
 int
 Remote_fetchspec__set__(Remote *self, PyObject* py_tuple)
 {
@@ -184,6 +185,44 @@ Remote_fetchspec__set__(Remote *self, PyObject* py_tuple)
     }
 
     return -1;
+}
+
+
+PyDoc_STRVAR(Remote_refspec_count__doc__, "Number of refspecs.");
+
+PyObject *
+Remote_refspec_count__get__(Remote *self)
+{
+    size_t count;
+
+    count = git_remote_refspec_count(self->remote);
+    return PyLong_FromSize_t(count);
+}
+
+
+PyDoc_STRVAR(Remote_get_refspec__doc__,
+    "get_refspec(n) -> (str, str)\n"
+    "\n"
+    "Return the refspec at the given position.");
+
+PyObject *
+Remote_get_refspec(Remote *self, PyObject *value)
+{
+    size_t n;
+    const git_refspec *refspec;
+
+    n = PyLong_AsSize_t(value);
+    if (PyErr_Occurred())
+        return NULL;
+
+    refspec = git_remote_get_refspec(self->remote, n);
+    if (refspec == NULL) {
+        PyErr_SetObject(PyExc_IndexError, value);
+        return NULL;
+    }
+
+    return Py_BuildValue("(ss)", git_refspec_src(refspec),
+                                 git_refspec_dst(refspec));
 }
 
 
@@ -223,15 +262,37 @@ Remote_fetch(Remote *self, PyObject *args)
 }
 
 
+PyDoc_STRVAR(Remote_save__doc__,
+  "save()\n\n"
+  "Save a remote to its repository configuration.");
+
+PyObject *
+Remote_save(Remote *self, PyObject *args)
+{
+    int err;
+
+    err = git_remote_save(self->remote);
+    if (err == GIT_OK) {
+        Py_RETURN_NONE;
+    }
+    else {
+        return Error_set(err);
+    }
+}
+
+
 PyMethodDef Remote_methods[] = {
     METHOD(Remote, fetch, METH_NOARGS),
+    METHOD(Remote, save, METH_NOARGS),
+    METHOD(Remote, get_refspec, METH_O),
     {NULL}
 };
 
 PyGetSetDef Remote_getseters[] = {
     GETSET(Remote, name),
     GETSET(Remote, url),
-    GETSET(Remote, fetchspec),
+    GETTER(Remote, refspec_count),
+    GETSET(Remote, fetchspec), /* FIXME: compatibility */
     {NULL}
 };
 
