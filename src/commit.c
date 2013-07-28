@@ -205,6 +205,152 @@ PyGetSetDef Commit_getseters[] = {
     {NULL}
 };
 
+PyDoc_STRVAR(Commit_is_changed__doc__,
+  "is_changed(paths, [flags, no_merges]) -> Diff\n"
+  "\n"
+  "check the paths are changed in current commit\n"
+  "\n"
+  "Arguments:\n"
+  "\n"
+  "paths: file path list.\n"
+  "\n"
+  "no_merges: boolean, escape merge commit or not.\n"
+  "\n"
+  "flags: a GIT_DIFF_* constant.\n"
+  "\n");
+
+PyObject *
+Commit_is_changed(Commit *self, PyObject *args, PyObject *kwds)
+{
+    const git_oid *parent_oid;
+    git_commit *parent;
+    git_tree* tree = NULL;
+    git_tree* parent_tree = NULL;
+    git_diff_list *diff;
+    git_repository *repo;
+    git_diff_options opts = GIT_DIFF_OPTIONS_INIT;
+    unsigned int i;
+    unsigned int parent_count;
+    int err;
+    int ndeltas;
+    char *keywords[] = {"paths", "flags", "no_merges", NULL};
+    Repository *py_repo;
+    PyObject *py_paths = NULL;
+    PyObject *py_no_merges = NULL;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|iO", keywords,
+                                     &py_paths, &opts.flags, &py_no_merges))
+        return NULL;
+
+    if (!PyObject_TypeCheck(py_paths, &PyList_Type)) {
+        PyErr_SetObject(PyExc_TypeError, py_paths);
+        return NULL;
+    }
+
+    if (py_no_merges != NULL &&
+            (py_no_merges != Py_None &&
+             !PyObject_TypeCheck(py_no_merges, &PyBool_Type))
+       ) {
+        PyErr_SetObject(PyExc_TypeError, py_no_merges);
+        return NULL;
+    }
+
+    int paths_length = 0;
+    PyObject *py_path = NULL;
+    paths_length = PyList_Size(py_paths);
+    if (paths_length <= 0) {
+        PyErr_SetObject(PyExc_ValueError, py_paths);
+        return NULL;
+    }
+    for (i = 0; i < paths_length; i++) {
+        py_path = PyList_GetItem(py_paths, i);
+        if (!PyObject_TypeCheck(py_path, &PyString_Type)) {
+            PyErr_SetObject(PyExc_TypeError, py_path);
+            return NULL;
+        }
+    }
+    opts.pathspec.count = paths_length;
+    opts.pathspec.strings = (char **) PyMem_Malloc(paths_length * sizeof (char *));
+    for (i = 0; i < paths_length; i++) {
+        py_path = PyList_GetItem(py_paths, i);
+        opts.pathspec.strings[i] = PyString_AsString(py_path);
+    }
+
+    py_repo = self->repo;
+    repo = py_repo->repo;
+
+    parent_count = git_commit_parentcount(self->commit);
+
+    err = git_commit_tree(&tree, self->commit);
+    if (err == GIT_ENOTFOUND)
+        Py_RETURN_NONE;
+
+    if (py_no_merges != NULL &&
+            py_no_merges != Py_None && PyObject_IsTrue(py_no_merges)) {
+        if (parent_count > 1) {
+            goto exit_false;
+        }
+    }
+
+    if (parent_count > 0) {
+        for (i=0; i < parent_count; i++) {
+            parent_oid = git_commit_parent_id(self->commit, i);
+            if (parent_oid == NULL) {
+                Error_set(GIT_ENOTFOUND);
+                goto error_null;
+            }
+
+            err = git_commit_lookup(&parent, py_repo->repo, parent_oid);
+            if (err < 0) {
+                return Error_set_oid(err, parent_oid, GIT_OID_HEXSZ);
+            }
+
+            err = git_commit_tree(&parent_tree, parent);
+            if (err == GIT_ENOTFOUND)
+                goto error;
+
+            err = git_diff_tree_to_tree(&diff, repo, parent_tree, tree, &opts);
+            if (err < 0)
+                goto error;
+
+            ndeltas = (int)git_diff_num_deltas(diff);
+            git_diff_list_free(diff);
+            if (ndeltas > 0)
+                goto exit_true;
+        }
+        goto exit_false;
+    }
+
+    err = git_diff_tree_to_tree(&diff, repo, tree, NULL, &opts);
+    if (err < 0)
+        return Error_set(err);
+    ndeltas = (int)git_diff_num_deltas(diff);
+    git_diff_list_free(diff);
+    if (ndeltas > 0)
+        goto exit_true;
+
+exit_false:
+    if (py_paths != NULL)
+        PyMem_Free(opts.pathspec.strings);
+    Py_RETURN_FALSE;
+error_null:
+    if (py_paths != NULL)
+        PyMem_Free(opts.pathspec.strings);
+    return NULL;
+error:
+    if (py_paths != NULL)
+        PyMem_Free(opts.pathspec.strings);
+    return Error_set(err);
+exit_true:
+    if (py_paths != NULL)
+        PyMem_Free(opts.pathspec.strings);
+    Py_RETURN_TRUE;
+}
+
+PyMethodDef Commit_methods[] = {
+    METHOD(Commit, is_changed, METH_VARARGS|METH_KEYWORDS),
+    {NULL}
+};
 
 PyDoc_STRVAR(Commit__doc__, "Commit objects.");
 
@@ -236,7 +382,7 @@ PyTypeObject CommitType = {
     0,                                         /* tp_weaklistoffset */
     0,                                         /* tp_iter           */
     0,                                         /* tp_iternext       */
-    0,                                         /* tp_methods        */
+    Commit_methods,                            /* tp_methods        */
     0,                                         /* tp_members        */
     Commit_getseters,                          /* tp_getset         */
     0,                                         /* tp_base           */
