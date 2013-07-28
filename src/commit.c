@@ -248,7 +248,7 @@ Commit_is_changed(Commit *self, PyObject *args, PyObject *kwds)
     }
 
     if (py_no_merges != NULL &&
-            (py_no_merges != Py_None ||
+            (py_no_merges != Py_None &&
              !PyObject_TypeCheck(py_no_merges, &PyBool_Type))
        ) {
         PyErr_SetObject(PyExc_TypeError, py_no_merges);
@@ -259,7 +259,7 @@ Commit_is_changed(Commit *self, PyObject *args, PyObject *kwds)
     PyObject *py_path = NULL;
     paths_length = PyList_Size(py_paths);
     if (paths_length <= 0) {
-        PyErr_SetObject(PyExc_ValueError, py_path);
+        PyErr_SetObject(PyExc_ValueError, py_paths);
         return NULL;
     }
     for (i = 0; i < paths_length; i++) {
