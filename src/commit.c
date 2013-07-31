@@ -35,6 +35,110 @@
 
 extern PyTypeObject TreeType;
 
+int
+compare_delta_file_path(const git_diff_delta *delta, git_diff_options *opts)
+{
+    unsigned int i;
+    int res = -1;
+    int cmp;
+    int length = opts->pathspec.count;
+    char **paths = opts->pathspec.strings;
+    for (i = 0; i < length; i++) {
+        cmp = strcmp(delta->old_file.path, paths[i]);
+        if (cmp != 0)
+            continue;
+        res = i;
+        break;
+    }
+    return res;
+}
+
+int
+get_diff_paths(git_diff_list *diff, git_diff_options *opts, int *indexs)
+{
+    const git_diff_delta *delta;
+    unsigned int i;
+    int ndeltas;
+    int err;
+    int index;
+    int count = 0;
+    ndeltas = (int)git_diff_num_deltas(diff);
+    for (i = 0; i < ndeltas; i++) {
+        err = git_diff_get_patch(NULL, &delta, diff, i);
+        if (err < 0)
+            goto cleanup;
+        index = compare_delta_file_path(delta, opts);
+        if (index < 0)
+            continue;
+        indexs[index] ++;
+        count ++;
+    }
+    return count;
+cleanup:
+    return err;
+}
+
+int
+quick_commit_diff_with_parent(git_repository *repo, git_commit *commit, unsigned int index,
+        git_diff_options *opts, git_diff_list **diff)
+{
+    const git_oid *parent_oid;
+    git_commit *parent;
+    git_tree* parent_tree = NULL;
+    git_tree* tree = NULL;
+    int err;
+    parent_oid = git_commit_parent_id(commit, index);
+    if (parent_oid == NULL) {
+        err = GIT_ENOTFOUND;
+        goto cleanup;
+    }
+
+    err = git_commit_lookup(&parent, repo, parent_oid);
+    if (err < 0)
+        goto cleanup;
+
+    err = git_commit_tree(&parent_tree, parent);
+    if (err < 0)
+        goto cleanup_ptree;
+
+    err = git_commit_tree(&tree, commit);
+    if (err < 0)
+        goto cleanup_tree;
+
+    err = git_diff_tree_to_tree(diff, repo, parent_tree, tree, opts);
+    if (err < 0)
+        goto cleanup_diff;
+
+cleanup_diff:
+    git_tree_free(tree);
+cleanup_tree:
+    git_tree_free(parent_tree);
+cleanup_ptree:
+    git_commit_free(parent);
+cleanup:
+    return err;
+}
+
+int
+quick_commit_diff(git_repository *repo, git_commit *commit,
+        git_diff_options *opts, git_diff_list **diff)
+{
+    git_tree* tree = NULL;
+    int err;
+
+    err = git_commit_tree(&tree, commit);
+    if (err < 0)
+        goto cleanup_tree;
+
+    err = git_diff_tree_to_tree(diff, repo, NULL, tree, opts);
+    if (err < 0)
+        goto cleanup_diff;
+
+cleanup_diff:
+    git_tree_free(tree);
+cleanup_tree:
+    return err;
+}
 
 PyDoc_STRVAR(Commit_message_encoding__doc__, "Message encoding.");
 
@@ -205,6 +309,7 @@ PyGetSetDef Commit_getseters[] = {
     {NULL}
 };
 
+
 PyDoc_STRVAR(Commit_is_changed__doc__,
   "is_changed(paths, [flags, no_merges]) -> Diff\n"
   "\n"
@@ -236,7 +341,10 @@ Commit_is_changed(Commit *self, PyObject *args, PyObject *kwds)
     char *keywords[] = {"paths", "flags", "no_merges", NULL};
     Repository *py_repo;
     PyObject *py_paths = NULL;
+    PyObject *py_diff_paths = NULL;
     PyObject *py_no_merges = NULL;
+    int *path_indexs;
+
 
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|iO", keywords,
                                      &py_paths, &opts.flags, &py_no_merges))
@@ -271,80 +379,57 @@ Commit_is_changed(Commit *self, PyObject *args, PyObject *kwds)
     }
     opts.pathspec.count = paths_length;
     opts.pathspec.strings = (char **) PyMem_Malloc(paths_length * sizeof (char *));
+    path_indexs = (int *)PyMem_Malloc(paths_length * sizeof (int));
     for (i = 0; i < paths_length; i++) {
         py_path = PyList_GetItem(py_paths, i);
         opts.pathspec.strings[i] = PyString_AsString(py_path);
+        path_indexs[i] = 0;
     }
 
     py_repo = self->repo;
     repo = py_repo->repo;
-
     parent_count = git_commit_parentcount(self->commit);
-
-    err = git_commit_tree(&tree, self->commit);
-    if (err == GIT_ENOTFOUND)
-        Py_RETURN_NONE;
-
     if (py_no_merges != NULL &&
             py_no_merges != Py_None && PyObject_IsTrue(py_no_merges)) {
-        if (parent_count > 1) {
-            goto exit_false;
-        }
+        if (parent_count > 1)
+            goto cleanup_empty;
     }
 
     if (parent_count > 0) {
-        for (i=0; i < parent_count; i++) {
-            parent_oid = git_commit_parent_id(self->commit, i);
-            if (parent_oid == NULL) {
-                Error_set(GIT_ENOTFOUND);
-                goto error_null;
-            }
-
-            err = git_commit_lookup(&parent, py_repo->repo, parent_oid);
-            if (err < 0) {
-                return Error_set_oid(err, parent_oid, GIT_OID_HEXSZ);
-            }
-
-            err = git_commit_tree(&parent_tree, parent);
-            if (err == GIT_ENOTFOUND)
-                goto error;
-
-            err = git_diff_tree_to_tree(&diff, repo, parent_tree, tree, &opts);
+        for (i = 0; i < parent_count; i++) {
+            err = quick_commit_diff_with_parent(repo, self->commit, i, &opts, &diff);
             if (err < 0)
-                goto error;
-
-            ndeltas = (int)git_diff_num_deltas(diff);
+                goto cleanup_error;
+            err = get_diff_paths(diff, &opts, path_indexs);
             git_diff_list_free(diff);
-            if (ndeltas > 0)
-                goto exit_true;
+            if (err < 0)
+                goto cleanup_error;
         }
-        goto exit_false;
+    } else {
+        err = quick_commit_diff(repo, self->commit, &opts, &diff);
+        if (err < 0)
+            goto cleanup_error;
+        err = get_diff_paths(diff, &opts, path_indexs);
+        git_diff_list_free(diff);
+        if (err < 0)
+            goto cleanup_error;
     }
 
-    err = git_diff_tree_to_tree(&diff, repo, tree, NULL, &opts);
-    if (err < 0)
-        return Error_set(err);
-    ndeltas = (int)git_diff_num_deltas(diff);
-    git_diff_list_free(diff);
-    if (ndeltas > 0)
-        goto exit_true;
+cleanup_empty:
+    py_diff_paths = PyList_New(paths_length);
+    for (i = 0; i < paths_length; i++) {
+        PyList_SetItem(py_diff_paths, i, Py_BuildValue("i", path_indexs[i]));
+    }
 
-exit_false:
-    if (py_paths != NULL)
-        PyMem_Free(opts.pathspec.strings);
-    Py_RETURN_FALSE;
-error_null:
-    if (py_paths != NULL)
-        PyMem_Free(opts.pathspec.strings);
+cleanup:
+    PyMem_Free(opts.pathspec.strings);
+    PyMem_Free(path_indexs);
+    return py_diff_paths;
+
+cleanup_error:
+    PyMem_Free(opts.pathspec.strings);
+    PyMem_Free(path_indexs);
     return NULL;
-error:
-    if (py_paths != NULL)
-        PyMem_Free(opts.pathspec.strings);
-    return Error_set(err);
-exit_true:
-    if (py_paths != NULL)
-        PyMem_Free(opts.pathspec.strings);
-    Py_RETURN_TRUE;
 }
 
 PyMethodDef Commit_methods[] = {
