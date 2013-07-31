@@ -137,16 +137,19 @@ class CommitTest(utils.BareRepoTestCase):
     def test_is_changed(self):
         commit = self.repo['c2792cfa289ae6321ecf2cd5806c2194b0fd070c']
         self.assertRaises(TypeError, commit.is_changed, b'a')
-        self.assertEqual(commit.is_changed([b'a']), True)
-        self.assertEqual(commit.is_changed([b'c']), False)
-        self.assertEqual(commit.is_changed([b'a'], no_merges=False), True)
-        self.assertEqual(commit.is_changed([b'c'], no_merges=True), False)
+        self.assertEqual(commit.is_changed([b'a']), [1])
+        self.assertEqual(commit.is_changed([b'c']), [0])
+        self.assertEqual(commit.is_changed([b'a'], no_merges=False), [1])
+        self.assertEqual(commit.is_changed([b'c'], no_merges=True), [0])
+        self.assertEqual(commit.is_changed([b'a', b'b']), [1, 1])
+        self.assertEqual(commit.is_changed([b'a', b'c']), [1, 0])
 
         commit = self.repo['f5e5aa4e36ab0fe62ee1ccc6eb8f79b866863b87']
-        self.assertEqual(commit.is_changed([b'lorem']), True)
-        self.assertEqual(commit.is_changed([b'a']), False)
-        self.assertEqual(commit.is_changed([b'lorem'], no_merges=True), True)
-        self.assertEqual(commit.is_changed([b'a'], no_merges=True), False)
+        self.assertEqual(commit.is_changed([b'lorem']), [1])
+        self.assertEqual(commit.is_changed([b'a']), [0])
+        self.assertEqual(commit.is_changed([b'lorem'], no_merges=True), [1])
+        self.assertEqual(commit.is_changed([b'a'], no_merges=True), [0])
+        self.assertEqual(commit.is_changed([b'lorem', b'a']), [1, 0])
 
 
 if __name__ == '__main__':
