@@ -44,7 +44,7 @@ compare_delta_file_path(const git_diff_delta *delta, git_diff_options *opts)
     int length = opts->pathspec.count;
     char **paths = opts->pathspec.strings;
     for (i = 0; i < length; i++) {
-        cmp = strcmp(delta->old_file.path, paths[i]);
+        cmp = strncmp(delta->old_file.path, paths[i], strlen(paths[i]));
         if (cmp != 0)
             continue;
         res = i;
