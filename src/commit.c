@@ -36,7 +36,7 @@
 extern PyTypeObject TreeType;
 
 int
-compare_delta_file_path(const git_diff_delta *delta, git_diff_options *opts)
+compare_delta_path(const git_diff_delta *delta, git_diff_options *opts)
 {
     unsigned int i;
     int res = -1;
@@ -54,7 +54,7 @@ compare_delta_file_path(const git_diff_delta *delta, git_diff_options *opts)
 }
 
 int
-get_diff_paths(git_diff_list *diff, git_diff_options *opts, int *indexs)
+diff_path_bytree(git_diff_list *diff, git_diff_options *opts, int *indexs)
 {
     const git_diff_delta *delta;
     unsigned int i;
@@ -67,7 +67,7 @@ get_diff_paths(git_diff_list *diff, git_diff_options *opts, int *indexs)
         err = git_diff_get_patch(NULL, &delta, diff, i);
         if (err < 0)
             goto cleanup;
-        index = compare_delta_file_path(delta, opts);
+        index = compare_delta_path(delta, opts);
         if (index < 0)
             continue;
         indexs[index] ++;
@@ -79,7 +79,7 @@ cleanup:
 }
 
 int
-quick_commit_diff_with_parent(git_repository *repo, git_commit *commit, unsigned int index,
+diff_tree_with_parent(git_repository *repo, git_commit *commit, unsigned int index,
         git_diff_options *opts, git_diff_list **diff)
 {
     const git_oid *parent_oid;
@@ -120,7 +120,7 @@ cleanup:
 }
 
 int
-quick_commit_diff(git_repository *repo, git_commit *commit,
+diff_tree(git_repository *repo, git_commit *commit,
         git_diff_options *opts, git_diff_list **diff)
 {
     git_tree* tree = NULL;
@@ -141,7 +141,7 @@ cleanup_tree:
 }
 
 int
-compare_tree_entry(git_tree *tree, git_tree *parent_tree, git_diff_options *opts, int *indexs)
+diff_path_byentry(git_tree *tree, git_tree *parent_tree, git_diff_options *opts, int *indexs)
 {
     const git_tree_entry *entry;
     const git_tree_entry *parent_entry;
@@ -196,9 +196,26 @@ cleanup:
     return err;
 }
 
+int
+diff_entry(git_repository *repo, git_commit *commit,
+        git_diff_options *opts, int *indexs)
+{
+    git_tree* tree = NULL;
+    int err;
+    err = git_commit_tree(&tree, commit);
+    if (err < 0)
+        goto cleanup;
+
+    err = diff_path_byentry(tree, NULL, opts, indexs);
+
+cleanup_entry:
+    git_tree_free(tree);
+cleanup:
+    return err;
+}
 
 int
-commit_tree_with_parent(git_repository *repo, git_commit *commit, unsigned int index,
+diff_entry_with_parent(git_repository *repo, git_commit *commit, unsigned int index,
         git_diff_options *opts, int *indexs)
 {
     const git_oid *parent_oid;
@@ -225,7 +242,7 @@ commit_tree_with_parent(git_repository *repo, git_commit *commit, unsigned int i
     if (err < 0)
         goto cleanup_tree;
 
-    err = compare_tree_entry(tree, parent_tree, opts, indexs);
+    err = diff_path_byentry(tree, parent_tree, opts, indexs);
 
 cleanup_entry:
     git_tree_free(tree);
@@ -233,24 +250,6 @@ cleanup_tree:
     git_tree_free(parent_tree);
 cleanup_ptree:
     git_commit_free(parent);
-cleanup:
-    return err;
-}
-
-int
-commit_tree(git_repository *repo, git_commit *commit,
-        git_diff_options *opts, int *indexs)
-{
-    git_tree* tree = NULL;
-    int err;
-    err = git_commit_tree(&tree, commit);
-    if (err < 0)
-        goto cleanup;
-
-    err = compare_tree_entry(tree, NULL, opts, indexs);
-
-cleanup_entry:
-    git_tree_free(tree);
 cleanup:
     return err;
 }
@@ -524,12 +523,12 @@ Commit_is_changed(Commit *self, PyObject *args, PyObject *kwds)
             py_no_diff != Py_None && PyObject_IsTrue(py_no_diff)) {
         if (parent_count > 0) {
             for (i = 0; i < parent_count; i++) {
-                err = commit_tree_with_parent(repo, self->commit, i, &opts, path_indexs);
+                err = diff_entry_with_parent(repo, self->commit, i, &opts, path_indexs);
                 if (err < 0)
                     goto cleanup_error;
             }
         } else {
-            err = commit_tree(repo, self->commit, &opts, path_indexs);
+            err = diff_entry(repo, self->commit, &opts, path_indexs);
             if (err < 0)
                 goto cleanup_error;
         }
@@ -538,19 +537,19 @@ Commit_is_changed(Commit *self, PyObject *args, PyObject *kwds)
 
     if (parent_count > 0) {
         for (i = 0; i < parent_count; i++) {
-            err = quick_commit_diff_with_parent(repo, self->commit, i, &opts, &diff);
+            err = diff_tree_with_parent(repo, self->commit, i, &opts, &diff);
             if (err < 0)
                 goto cleanup_error;
-            err = get_diff_paths(diff, &opts, path_indexs);
+            err = diff_path_bytree(diff, &opts, path_indexs);
             git_diff_list_free(diff);
             if (err < 0)
                 goto cleanup_error;
         }
     } else {
-        err = quick_commit_diff(repo, self->commit, &opts, &diff);
+        err = diff_tree(repo, self->commit, &opts, &diff);
         if (err < 0)
             goto cleanup_error;
-        err = get_diff_paths(diff, &opts, path_indexs);
+        err = diff_path_bytree(diff, &opts, path_indexs);
         git_diff_list_free(diff);
         if (err < 0)
             goto cleanup_error;
