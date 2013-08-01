@@ -150,6 +150,9 @@ class CommitTest(utils.BareRepoTestCase):
         self.assertEqual(commit.is_changed([b'a', b'b'], no_diff=True), [1, 1])
         self.assertEqual(commit.is_changed([b'a', b'c'], no_diff=True), [1, 0])
 
+        self.assertEqual(commit.is_changed([b'a', b'b'], thread=True), [1, 1])
+        self.assertEqual(commit.is_changed([b'a', b'c'], thread=True), [1, 0])
+
         commit = self.repo['f5e5aa4e36ab0fe62ee1ccc6eb8f79b866863b87']
         self.assertEqual(commit.is_changed([b'lorem']), [1])
         self.assertEqual(commit.is_changed([b'a']), [0])
@@ -161,6 +164,8 @@ class CommitTest(utils.BareRepoTestCase):
         self.assertEqual(commit.is_changed([b'lorem'], no_merges=True, no_diff=True), [1])
         self.assertEqual(commit.is_changed([b'a'], no_merges=True, no_diff=True), [0])
         self.assertEqual(commit.is_changed([b'lorem', b'a'], no_diff=True), [1, 0])
+
+        self.assertEqual(commit.is_changed([b'lorem', b'a'], thread=True), [1, 0])
 
 
 if __name__ == '__main__':
