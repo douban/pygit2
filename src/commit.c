@@ -148,28 +148,52 @@ compare_tree_entry(git_tree *tree, git_tree *parent_tree, git_diff_options *opts
     int length = opts->pathspec.count;
     char **paths = opts->pathspec.strings;
     int i;
+    int err;
     int re;
-    int count = 0;
     for (i = 0; i < length; i++) {
-        entry = git_tree_entry_byname(tree, paths[i]);
+        if (indexs[i] > 0)
+            continue;
+        err = git_tree_entry_bypath((git_tree_entry **)&entry, tree, paths[i]);
+        if (err < 0) {
+            if (err != GIT_ENOTFOUND)
+                goto cleanup;
+            entry = NULL;
+        }
         if (parent_tree == NULL) {
             if (entry == NULL)
                 continue;
+            git_tree_entry_free((git_tree_entry *)entry);
         } else {
-            parent_entry = git_tree_entry_byname(parent_tree, paths[i]);
+            err = git_tree_entry_bypath((git_tree_entry **)&parent_entry, parent_tree, paths[i]);
+            if (err < 0) {
+                if (err != GIT_ENOTFOUND)
+                    goto cleanup_error;
+                parent_entry = NULL;
+            }
             if (entry == NULL && parent_entry == NULL)
                 continue;
             if (entry != NULL && parent_entry != NULL) {
                 re = memcmp(git_tree_entry_id(entry)->id, git_tree_entry_id(parent_entry)->id,
                         GIT_OID_RAWSZ);
-                if (re == 0)
+                if (re == 0) {
+                    git_tree_entry_free((git_tree_entry *)parent_entry);
+                    git_tree_entry_free((git_tree_entry *)entry);
                     continue;
+                }
             }
+            if (entry != NULL)
+                git_tree_entry_free((git_tree_entry *)entry);
+            if (parent_entry != NULL)
+                git_tree_entry_free((git_tree_entry *)parent_entry);
         }
         indexs[i] ++;
-        count ++;
     }
-    return count;
+    return 0;
+
+cleanup_error:
+    git_tree_entry_free((git_tree_entry *)entry);
+cleanup:
+    return err;
 }
 
 
