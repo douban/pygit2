@@ -232,6 +232,7 @@ diff_path_byentry_threaded(git_tree *tree, git_tree *parent_tree,
         thread = &threads[i];
         err = pthread_join(thread->thread, NULL);
     }
+    free(threads);
     return 0;
 }
 
