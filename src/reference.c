@@ -40,6 +40,7 @@
 
 extern PyObject *GitError;
 extern PyTypeObject RefLogEntryType;
+extern PyTypeObject SignatureType;
 
 
 void RefLogIter_dealloc(RefLogIter *self)
@@ -313,6 +314,54 @@ Reference_log(Reference *self)
 }
 
 
+PyDoc_STRVAR(Reference_append_log__doc__,
+  "append_log(committer, message) -> Boolean\n"
+  "\n"
+  "Append reflog to the current reference.");
+
+PyObject *
+Reference_append_log(Reference *self, PyObject *args, PyObject *kwds)
+{
+    git_signature *committer;
+    const char *message = NULL;
+    git_reflog *reflog;
+    int err;
+    Signature *py_committer;
+    PyObject *py_message = NULL;
+    char *keywords[] = {"committer", "message", NULL};
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O!O", keywords,
+                &SignatureType, &py_committer,
+                &py_message))
+        return NULL;
+
+    // FIXME: encoding
+    message = py_str_to_c_str(py_message, NULL);
+    if (message == NULL)
+        return NULL;
+
+    CHECK_REFERENCE(self);
+
+    err = git_reflog_read(&reflog, self->reference);
+    if (err < 0) {
+        free((void *)message);
+        return NULL;
+    }
+
+    committer = (git_signature *)py_committer->signature;
+    if (!(err = git_reflog_append(reflog,
+                    git_reference_target(self->reference),
+                    committer,
+                    message)))
+        err = git_reflog_write(reflog);
+
+    git_reflog_free(reflog);
+    free((void *)message);
+
+    Py_RETURN_TRUE;
+}
+
+
 PyDoc_STRVAR(Reference_get_object__doc__,
   "get_object() -> object\n"
   "\n"
@@ -426,6 +475,7 @@ PyMethodDef Reference_methods[] = {
     METHOD(Reference, rename, METH_O),
     METHOD(Reference, resolve, METH_NOARGS),
     METHOD(Reference, log, METH_NOARGS),
+    METHOD(Reference, append_log, METH_VARARGS|METH_KEYWORDS),
     METHOD(Reference, get_object, METH_NOARGS),
     {NULL}
 };
