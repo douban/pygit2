@@ -358,6 +358,9 @@ Reference_append_log(Reference *self, PyObject *args, PyObject *kwds)
     git_reflog_free(reflog);
     free((void *)message);
 
+    if (err < 0)
+        return NULL;
+
     Py_RETURN_TRUE;
 }
 
