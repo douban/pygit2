@@ -156,6 +156,9 @@ class Repository(_Repository):
             the maximum number of unchanged lines between hunk
             boundaries before the hunks will be merged into a one
 
+        paths
+            paths to diff
+
         Examples::
 
           # Changes in the working tree not yet staged for the next commit
