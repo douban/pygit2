@@ -134,7 +134,7 @@ class Repository(_Repository):
     # Diff
     #
     def diff(self, a=None, b=None, cached=False, flags=GIT_DIFF_NORMAL,
-             context_lines=3, interhunk_lines=0):
+             context_lines=3, interhunk_lines=0, paths=None):
         """
         Show changes between the working tree and the index or a tree,
         changes between the index and a tree, changes between two trees, or
@@ -192,8 +192,8 @@ class Repository(_Repository):
         a = treeish_to_tree(a) or a
         b = treeish_to_tree(b) or b
 
-        opt_keys = ['flags', 'context_lines', 'interhunk_lines']
-        opt_values = [flags, context_lines, interhunk_lines]
+        opt_keys = ['flags', 'context_lines', 'interhunk_lines', 'paths']
+        opt_values = [flags, context_lines, interhunk_lines, paths]
 
         # Case 1: Diff tree to tree
         if isinstance(a, Tree) and isinstance(b, Tree):

@@ -308,29 +308,9 @@ Tree_diff(Tree *self, PyObject *args, PyObject *kwds)
                                      &opts.context_lines, &py_paths))
         return NULL;
 
-    if (py_paths != NULL) {
-        if (!PyObject_TypeCheck(py_paths, &PyList_Type)) {
-            PyErr_SetObject(PyExc_TypeError, py_paths);
-            return NULL;
-        }
-        int i, paths_length = 0;
-        PyObject *py_path = NULL;
-        paths_length = PyList_Size(py_paths);
-        for (i = 0; i < paths_length; i++) {
-            py_path = PyList_GetItem(py_paths, i);
-            if (!PyObject_TypeCheck(py_path, &PyString_Type)) {
-                PyErr_SetObject(PyExc_TypeError, py_path);
-                return NULL;
-            }
-        }
-        opts.pathspec.count = paths_length;
-        opts.pathspec.strings = (char **) PyMem_Malloc(paths_length * sizeof (char *));
-        for (i = 0; i < paths_length; i++) {
-            py_path = PyList_GetItem(py_paths, i);
-            opts.pathspec.strings[i] = PyString_AsString(py_path);
-        }
-
-    }
+    err = py_list_to_opts(py_paths, &opts);
+    if (err < 0)
+        return NULL;
 
     repo = git_tree_owner(self->tree);
     if (py_obj == NULL) {
@@ -348,14 +328,12 @@ Tree_diff(Tree *self, PyObject *args, PyObject *kwds)
         err = git_diff_tree_to_index(&diff, repo, self->tree, index, &opts);
 
     } else {
-        if (py_paths != NULL)
-            PyMem_Free(opts.pathspec.strings);
+        free_opts_pathspec(py_paths, &opts);
         PyErr_SetObject(PyExc_TypeError, py_obj);
         return NULL;
     }
 
-    if (py_paths != NULL)
-        PyMem_Free(opts.pathspec.strings);
+    free_opts_pathspec(py_paths, &opts);
 
     if (err < 0)
         return Error_set(err);
@@ -372,7 +350,7 @@ Tree_diff(Tree *self, PyObject *args, PyObject *kwds)
 
 
 PyDoc_STRVAR(Tree_diff_to_workdir__doc__,
-  "diff_to_workdir([flags, context_lines, interhunk_lines]) -> Diff\n"
+  "diff_to_workdir([flags, context_lines, interhunk_lines, paths]) -> Diff\n"
   "\n"
   "Show the changes between the :py:class:`~pygit2.Tree` and the workdir.\n"
   "\n"
@@ -392,14 +370,22 @@ Tree_diff_to_workdir(Tree *self, PyObject *args)
     git_diff_options opts = GIT_DIFF_OPTIONS_INIT;
     git_diff_list *diff;
     Repository *py_repo;
+    PyObject *py_paths = NULL;
     int err;
 
-    if (!PyArg_ParseTuple(args, "|IHH", &opts.flags, &opts.context_lines,
-                                        &opts.interhunk_lines))
+    if (!PyArg_ParseTuple(args, "|IHHO", &opts.flags, &opts.context_lines,
+                                        &opts.interhunk_lines, &py_paths))
+        return NULL;
+
+    err = py_list_to_opts(py_paths, &opts);
+    if (err < 0)
         return NULL;
 
     py_repo = self->repo;
     err = git_diff_tree_to_workdir(&diff, py_repo->repo, self->tree, &opts);
+
+    free_opts_pathspec(py_paths, &opts);
+
     if (err < 0)
         return Error_set(err);
 
@@ -408,7 +394,7 @@ Tree_diff_to_workdir(Tree *self, PyObject *args)
 
 
 PyDoc_STRVAR(Tree_diff_to_index__doc__,
-  "diff_to_index(index, [flags, context_lines, interhunk_lines]) -> Diff\n"
+  "diff_to_index(index, [flags, context_lines, interhunk_lines, paths]) -> Diff\n"
   "\n"
   "Show the changes between the index and a given :py:class:`~pygit2.Tree`.\n"
   "\n"
@@ -430,18 +416,27 @@ Tree_diff_to_index(Tree *self, PyObject *args, PyObject *kwds)
     git_diff_options opts = GIT_DIFF_OPTIONS_INIT;
     git_diff_list *diff;
     Repository *py_repo;
+    PyObject *py_paths = NULL;
     int err;
 
     Index *py_idx = NULL;
 
-    if (!PyArg_ParseTuple(args, "O!|IHH", &IndexType, &py_idx, &opts.flags,
+    if (!PyArg_ParseTuple(args, "O!|IHHO", &IndexType, &py_idx, &opts.flags,
                                         &opts.context_lines,
-                                        &opts.interhunk_lines))
+                                        &opts.interhunk_lines,
+                                        &py_paths))
+        return NULL;
+
+    err = py_list_to_opts(py_paths, &opts);
+    if (err < 0)
         return NULL;
 
     py_repo = self->repo;
     err = git_diff_tree_to_index(&diff, py_repo->repo, self->tree,
                                  py_idx->index, &opts);
+
+    free_opts_pathspec(py_paths, &opts);
+
     if (err < 0)
         return Error_set(err);
 
@@ -450,7 +445,7 @@ Tree_diff_to_index(Tree *self, PyObject *args, PyObject *kwds)
 
 
 PyDoc_STRVAR(Tree_diff_to_tree__doc__,
-  "diff_to_tree([tree, flags, context_lines, interhunk_lines, swap]) -> Diff\n"
+  "diff_to_tree([tree, flags, context_lines, interhunk_lines, swap, paths]) -> Diff\n"
   "\n"
   "Show the changes between two trees\n"
   "\n"
@@ -478,14 +473,20 @@ Tree_diff_to_tree(Tree *self, PyObject *args, PyObject *kwds)
     Repository *py_repo;
     int err, swap = 0;
     char *keywords[] = {"obj", "flags", "context_lines", "interhunk_lines",
-                        "swap", NULL};
+                        "swap", "paths", NULL};
+    PyObject *py_paths = NULL;
 
     Tree *py_tree = NULL;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|O!IHHi", keywords,
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|O!IHHiO", keywords,
                                      &TreeType, &py_tree, &opts.flags,
                                      &opts.context_lines,
-                                     &opts.interhunk_lines, &swap))
+                                     &opts.interhunk_lines, &swap,
+                                     &py_paths))
+        return NULL;
+
+    err = py_list_to_opts(py_paths, &opts);
+    if (err < 0)
         return NULL;
 
     py_repo = self->repo;
@@ -498,6 +499,9 @@ Tree_diff_to_tree(Tree *self, PyObject *args, PyObject *kwds)
     }
 
     err = git_diff_tree_to_tree(&diff, py_repo->repo, from, to, &opts);
+
+    free_opts_pathspec(py_paths, &opts);
+
     if (err < 0)
         return Error_set(err);
 
