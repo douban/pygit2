@@ -271,6 +271,14 @@ PyTypeObject DiffIterType = {
     (iternextfunc) DiffIter_iternext,          /* tp_iternext       */
 };
 
+PyDoc_STRVAR(Diff_size__doc__, "Diff size similar to 'git diff --numstat'.");
+
+int 
+Diff_size__get__(Diff *self)
+{
+   num = git_diff_num_deltas(self->list);
+   return num;
+}
 
 PyDoc_STRVAR(Diff_patch__doc__, "Patch diff string.");
 
@@ -462,6 +470,7 @@ Diff_dealloc(Diff *self)
 
 PyGetSetDef Diff_getseters[] = {
     GETTER(Diff, patch),
+    GETTER(Diff, size),
     {NULL}
 };
 
