@@ -370,7 +370,7 @@ Config_get_multivar(Config *self, PyObject *args)
         return NULL;
 
     list = PyList_New(0);
-    err = git_config_get_multivar(self->config, name, regex,
+    err = git_config_get_multivar_foreach(self->config, name, regex,
                                   Config_get_multivar_fn_wrapper,
                                   (void *)list);
 
