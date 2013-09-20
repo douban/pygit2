@@ -431,7 +431,7 @@ Repository_write(Repository *self, PyObject *args)
         return Error_set(err);
 
     stream->write(stream, buffer, buflen);
-    err = stream->finalize_write(&oid, stream);
+    err = stream->finalize_write(stream, &oid);
     stream->free(stream);
     return git_oid_to_python(&oid);
 }
