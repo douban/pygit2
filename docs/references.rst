@@ -38,7 +38,7 @@ Example. These two lines are equivalent::
 
 .. autoattribute:: pygit2.Repository.head
 .. autoattribute:: pygit2.Repository.head_is_detached
-.. autoattribute:: pygit2.Repository.head_is_orphaned
+.. autoattribute:: pygit2.Repository.head_is_unborn
 
 Branches
 ====================
