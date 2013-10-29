@@ -136,10 +136,15 @@ Index_diff_to_workdir(Index *self, PyObject *args)
 {
     git_diff_options opts = GIT_DIFF_OPTIONS_INIT;
     git_diff_list *diff;
+    PyObject *py_paths = NULL;
     int err;
 
-    if (!PyArg_ParseTuple(args, "|IHH", &opts.flags, &opts.context_lines,
-                                        &opts.interhunk_lines))
+    if (!PyArg_ParseTuple(args, "|IHHO", &opts.flags, &opts.context_lines,
+                                        &opts.interhunk_lines, &py_paths))
+        return NULL;
+
+    err = py_list_to_opts(py_paths, &opts);
+    if (err < 0)
         return NULL;
 
     err = git_diff_index_to_workdir(
@@ -147,6 +152,8 @@ Index_diff_to_workdir(Index *self, PyObject *args)
             self->repo->repo,
             self->index,
             &opts);
+
+    free_opts_pathspec(py_paths, &opts);
 
     if (err < 0)
         return Error_set(err);

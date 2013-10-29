@@ -216,6 +216,7 @@ committer and others.
 .. autoattribute:: pygit2.Commit.committer
 .. autoattribute:: pygit2.Commit.message
 .. autoattribute:: pygit2.Commit.message_encoding
+.. autoattribute:: pygit2.Commit.raw_message
 .. autoattribute:: pygit2.Commit.tree
 .. autoattribute:: pygit2.Commit.parents
 .. autoattribute:: pygit2.Commit.commit_time
@@ -232,7 +233,9 @@ objects::
     <pygit2.Signature object at 0x7f75e9b1f5f8>
 
 .. autoattribute:: pygit2.Signature.name
+.. autoattribute:: pygit2.Signature.raw_name
 .. autoattribute:: pygit2.Signature.email
+.. autoattribute:: pygit2.Signature.raw_email
 .. autoattribute:: pygit2.Signature.time
 .. autoattribute:: pygit2.Signature.offset
 
@@ -266,6 +269,8 @@ A tag is a static label for a commit. See references for more information.
 .. autoattribute:: pygit2.Tag.target
 .. autoattribute:: pygit2.Tag.tagger
 .. autoattribute:: pygit2.Tag.message
+
+.. automethod:: pygit2.Tag.get_object
 
 
 Creating tags

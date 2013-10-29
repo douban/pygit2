@@ -68,7 +68,7 @@ class RepositoryTest(utils.BareRepoTestCase):
         head = self.repo.head
         self.assertEqual(HEAD_SHA, head.target.hex)
         self.assertEqual(type(head), Reference)
-        self.assertFalse(self.repo.head_is_orphaned)
+        self.assertFalse(self.repo.head_is_unborn)
         self.assertFalse(self.repo.head_is_detached)
 
     def test_read(self):
@@ -146,7 +146,7 @@ class RepositoryTest(utils.BareRepoTestCase):
 
     def test_get_path(self):
         directory = realpath(self.repo.path)
-        expected = realpath(join(self._temp_dir, 'testrepo.git'))
+        expected = realpath(self.repo_path)
         self.assertEqual(directory, expected)
 
     def test_get_workdir(self):
@@ -181,12 +181,12 @@ class RepositoryTest_II(utils.RepoTestCase):
 
     def test_get_path(self):
         directory = realpath(self.repo.path)
-        expected = realpath(join(self._temp_dir, 'testrepo', '.git'))
+        expected = realpath(join(self.repo_path, '.git'))
         self.assertEqual(directory, expected)
 
     def test_get_workdir(self):
         directory = realpath(self.repo.workdir)
-        expected = realpath(join(self._temp_dir, 'testrepo'))
+        expected = realpath(self.repo_path)
         self.assertEqual(directory, expected)
 
     def test_checkout_ref(self):
@@ -305,7 +305,7 @@ class EmptyRepositoryTest(utils.EmptyRepoTestCase):
         self.assertFalse(self.repo.is_bare)
 
     def test_head(self):
-        self.assertTrue(self.repo.head_is_orphaned)
+        self.assertTrue(self.repo.head_is_unborn)
         self.assertFalse(self.repo.head_is_detached)
 
 

@@ -176,6 +176,8 @@ class DiffTest(utils.BareRepoTestCase):
             self.assertEqual(patch.old_file_path, 'a')
             self.assertEqual(patch.new_file_path, 'a')
 
+            self.assertEqual(patch.binary, False)
+
         _test(commit_a.tree.diff_to_tree(commit_b.tree))
         _test(self.repo.diff(COMMIT_SHA1_1, COMMIT_SHA1_2))
 
@@ -253,6 +255,7 @@ class DiffTest(utils.BareRepoTestCase):
         commit_b = self.repo[COMMIT_SHA1_2]
 
         diff = commit_a.tree.diff_to_tree(commit_b.tree)
+        self.assertEqual(diff.size, len([patch for patch in diff]))
         self.assertEqual(diff.patch, PATCH)
 
     def test_diff_oids(self):
