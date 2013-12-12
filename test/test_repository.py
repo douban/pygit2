@@ -456,8 +456,7 @@ class CloneRepositoryTest(utils.NoRepoTestCase):
     def test_clone_fetch_spec(self):
         repo_path = "./test/data/testrepo.git/"
         repo = clone_repository(
-            repo_path, self._temp_dir, fetch_spec="+refs/heads/master:refs/heads/test"
-        )
+            repo_path, self._temp_dir)
         self.assertFalse(repo.is_empty)
         # FIXME: When pygit2 retrieve the fetchspec we passed to git clone.
         # fetchspec seems to be going through, but the Repository class is
@@ -467,8 +466,7 @@ class CloneRepositoryTest(utils.NoRepoTestCase):
     def test_clone_push_spec(self):
         repo_path = "./test/data/testrepo.git/"
         repo = clone_repository(
-            repo_path, self._temp_dir, push_spec="+refs/heads/master:refs/heads/test"
-        )
+            repo_path, self._temp_dir)
         self.assertFalse(repo.is_empty)
         # FIXME: When pygit2 supports retrieving the pushspec parameter,
         # enable this test

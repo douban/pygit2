@@ -177,8 +177,6 @@ class DiffTest(utils.BareRepoTestCase):
             self.assertEqual(patch.new_file_path, 'a')
             self.assertEqual(patch.is_binary, False)
 
-            self.assertEqual(patch.binary, False)
-
         _test(commit_a.tree.diff_to_tree(commit_b.tree))
         _test(self.repo.diff(COMMIT_SHA1_1, COMMIT_SHA1_2))
 
