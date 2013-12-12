@@ -60,14 +60,13 @@ diff_path_bytree(git_diff *diff, git_diff_options *opts, int *indexs)
     const git_diff_delta *delta;
     unsigned int i;
     int ndeltas;
-    int err;
     int index;
     int count = 0;
     ndeltas = (int)git_diff_num_deltas(diff);
     for (i = 0; i < ndeltas; i++) {
-        err = git_patch_from_diff(&patch, diff, i);
-        if (err < 0)
-            goto cleanup;
+        delta = git_diff_get_delta(diff, i);
+        if (delta == NULL)
+            continue;
         index = compare_delta_path(delta, opts);
         if (index < 0)
             continue;
@@ -75,8 +74,6 @@ diff_path_bytree(git_diff *diff, git_diff_options *opts, int *indexs)
         count ++;
     }
     return count;
-cleanup:
-    return err;
 }
 
 int
