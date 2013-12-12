@@ -1,3 +1,5 @@
+# -*- coding: UTF-8 -*-
+#
 # Copyright 2010-2013 The pygit2 contributors
 #
 # This file is free software; you can redistribute it and/or modify
@@ -23,4 +25,20 @@
 # the Free Software Foundation, 51 Franklin Street, Fifth Floor,
 # Boston, MA 02110-1301, USA.
 
-__version__ = '0.20.0'
+"""Tests for reference log."""
+
+from __future__ import absolute_import
+from __future__ import unicode_literals
+
+from pygit2 import Signature
+from . import utils
+
+
+class ReflogTest(utils.RepoTestCase):
+
+    def test_log_append(self):
+        repo = self.repo
+        master = repo.lookup_reference("refs/heads/master")
+        signature = Signature('xtao', 'xutao@douban.com')
+        master.log_append(None, signature, 'reflog')
+        self.assertTrue('reflog' in [entry.message for entry in master.log()])

@@ -95,7 +95,7 @@ typedef struct {
 
 
 /* git _diff */
-SIMPLE_TYPE(Diff, git_diff_list, list)
+SIMPLE_TYPE(Diff, git_diff, list)
 
 typedef struct {
     PyObject_HEAD
@@ -192,5 +192,34 @@ typedef struct {
 /* git_remote */
 SIMPLE_TYPE(Remote, git_remote, remote)
 
+
+/* git_blame */
+SIMPLE_TYPE(Blame, git_blame, blame)
+
+typedef struct {
+    PyObject_HEAD
+    Blame* blame;
+    size_t i;
+    size_t n;
+} BlameIter;
+
+typedef struct {
+    PyObject_HEAD
+    unsigned lines_in_hunk;
+    char* final_commit_id;
+    unsigned final_start_line_number;
+    git_signature* final_signature;
+    char* orig_commit_id;
+    char* orig_path;
+    unsigned orig_start_line_number;
+    git_signature* orig_signature;
+    char boundary;
+} BlameHunk;
+
+/* git_merge */
+typedef struct {
+    PyObject_HEAD
+    git_merge_result *result;
+} MergeResult;
 
 #endif

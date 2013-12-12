@@ -49,7 +49,8 @@ void RefLogIter_dealloc(RefLogIter *self)
     PyObject_Del(self);
 }
 
-PyObject* RefLogIter_iternext(RefLogIter *self)
+PyObject *
+RefLogIter_iternext(RefLogIter *self)
 {
     const git_reflog_entry *entry;
     RefLogEntry *py_entry;
@@ -277,6 +278,15 @@ Reference_name__get__(Reference *self)
     return to_path(git_reference_name(self->reference));
 }
 
+PyDoc_STRVAR(Reference_shorthand__doc__,
+    "The shorthand \"human-readable\" name of the reference.");
+
+PyObject *
+Reference_shorthand__get__(Reference *self)
+{
+    CHECK_REFERENCE(self);
+    return to_path(git_reference_shorthand(self->reference));
+}
 
 PyDoc_STRVAR(Reference_type__doc__,
     "Type, either GIT_REF_OID or GIT_REF_SYMBOLIC.");
@@ -300,19 +310,90 @@ PyDoc_STRVAR(Reference_log__doc__,
 PyObject *
 Reference_log(Reference *self)
 {
+    int err;
     RefLogIter *iter;
+    git_repository *repo;
 
     CHECK_REFERENCE(self);
 
+    repo = git_reference_owner(self->reference);
     iter = PyObject_New(RefLogIter, &RefLogIterType);
     if (iter != NULL) {
-        git_reflog_read(&iter->reflog, self->reference);
+        err = git_reflog_read(&iter->reflog, repo, git_reference_name(self->reference));
+        if (err < 0)
+            return Error_set(err);
+
         iter->size = git_reflog_entrycount(iter->reflog);
         iter->i = 0;
     }
     return (PyObject*)iter;
 }
 
+PyDoc_STRVAR(Reference_log_append__doc__,
+  "log_append(oid, committer, message[, encoding])\n"
+  "\n"
+  "Append a reflog entry to the reference. If the oid is None then keep\n"
+  "the current reference's oid. The message parameter may be None.");
+
+PyObject *
+Reference_log_append(Reference *self, PyObject *args)
+{
+    git_signature *committer;
+    const char *message = NULL;
+    git_reflog *reflog;
+    git_oid oid;
+    const git_oid *ref_oid;
+    int err;
+    PyObject *py_oid = NULL;
+    Signature *py_committer;
+    PyObject *py_message = NULL;
+    char *encoding = NULL;
+    git_repository *repo;
+
+    CHECK_REFERENCE(self);
+
+    /* Input parameters */
+    if (!PyArg_ParseTuple(args, "OO!O|s", &py_oid,
+                          &SignatureType, &py_committer,
+                          &py_message, &encoding))
+        return NULL;
+
+    if (py_oid == Py_None)
+        ref_oid = git_reference_target(self->reference);
+    else {
+        err = py_oid_to_git_oid_expand(self->repo->repo, py_oid, &oid);
+        if (err < 0)
+            return NULL;
+        ref_oid = &oid;
+    }
+
+    if (py_message != Py_None) {
+        message = py_str_to_c_str(py_message, encoding);
+        if (message == NULL)
+            return NULL;
+    }
+
+    /* Go */
+    repo = git_reference_owner(self->reference);
+    err = git_reflog_read(&reflog, repo, git_reference_name(self->reference));
+    if (err < 0) {
+        free((void *)message);
+        return NULL;
+    }
+
+    committer = (git_signature *)py_committer->signature;
+    err = git_reflog_append(reflog, ref_oid, committer, message);
+    if (!err)
+        err = git_reflog_write(reflog);
+
+    git_reflog_free(reflog);
+    free((void *)message);
+
+    if (err < 0)
+        return NULL;
+
+    Py_RETURN_NONE;
+}
 
 PyDoc_STRVAR(Reference_append_log__doc__,
   "append_log(committer, message) -> Boolean\n"
@@ -478,13 +559,14 @@ PyMethodDef Reference_methods[] = {
     METHOD(Reference, rename, METH_O),
     METHOD(Reference, resolve, METH_NOARGS),
     METHOD(Reference, log, METH_NOARGS),
-    METHOD(Reference, append_log, METH_VARARGS|METH_KEYWORDS),
+    METHOD(Reference, log_append, METH_VARARGS),
     METHOD(Reference, get_object, METH_NOARGS),
     {NULL}
 };
 
 PyGetSetDef Reference_getseters[] = {
     GETTER(Reference, name),
+    GETTER(Reference, shorthand),
     GETSET(Reference, target),
     GETTER(Reference, type),
     {NULL}
