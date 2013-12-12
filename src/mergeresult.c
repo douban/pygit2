@@ -28,48 +28,76 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include "utils.h"
-#include "object.h"
-#include "blob.h"
+#include "types.h"
+#include "oid.h"
+#include "repository.h"
+#include "mergeresult.h"
 
-
-PyDoc_STRVAR(Blob_size__doc__, "Size.");
+extern PyTypeObject MergeResultType;
+extern PyTypeObject IndexType;
 
 PyObject *
-Blob_size__get__(Blob *self)
+git_merge_result_to_python(git_merge_result *merge_result)
 {
-    return PyLong_FromLongLong(git_blob_rawsize(self->blob));
+    MergeResult *py_merge_result;
+
+    py_merge_result = PyObject_New(MergeResult, &MergeResultType);
+    if (!py_merge_result)
+        return NULL;
+
+    py_merge_result->result = merge_result;
+
+    return (PyObject*) py_merge_result;
 }
 
-
-PyDoc_STRVAR(Blob_is_binary__doc__, "True if binary data, False if not.");
+PyDoc_STRVAR(MergeResult_is_uptodate__doc__, "Is up to date");
 
 PyObject *
-Blob_is_binary__get__(Blob *self)
+MergeResult_is_uptodate__get__(MergeResult *self)
 {
-    if (git_blob_is_binary(self->blob))
+    if (git_merge_result_is_uptodate(self->result))
         Py_RETURN_TRUE;
-    Py_RETURN_FALSE;
+    else
+        Py_RETURN_FALSE;
 }
 
+PyDoc_STRVAR(MergeResult_is_fastforward__doc__, "Is fastforward");
 
-PyDoc_STRVAR(Blob_data__doc__,
-  "The contents of the blob, a bytes string. This is the same as\n"
-  "Blob.read_raw()");
+PyObject *
+MergeResult_is_fastforward__get__(MergeResult *self)
+{
+    if (git_merge_result_is_fastforward(self->result))
+        Py_RETURN_TRUE;
+    else
+        Py_RETURN_FALSE;
+}
 
-PyGetSetDef Blob_getseters[] = {
-    GETTER(Blob, size),
-    GETTER(Blob, is_binary),
-    {"data", (getter)Object_read_raw, NULL, Blob_data__doc__, NULL},
-    {NULL}
+PyDoc_STRVAR(MergeResult_fastforward_oid__doc__, "Fastforward Oid");
+
+PyObject *
+MergeResult_fastforward_oid__get__(MergeResult *self)
+{
+    if (git_merge_result_is_fastforward(self->result)) {
+        git_oid fastforward_oid;
+        git_merge_result_fastforward_oid(&fastforward_oid, self->result);
+        return git_oid_to_python((const git_oid *)&fastforward_oid);
+    }
+    else Py_RETURN_NONE;
+}
+
+PyGetSetDef MergeResult_getseters[] = {
+    GETTER(MergeResult, is_uptodate),
+    GETTER(MergeResult, is_fastforward),
+    GETTER(MergeResult, fastforward_oid),
+    {NULL},
 };
 
+PyDoc_STRVAR(MergeResult__doc__, "MergeResult object.");
 
-PyDoc_STRVAR(Blob__doc__, "Blob objects.");
-
-PyTypeObject BlobType = {
+PyTypeObject MergeResultType = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "_pygit2.Blob",                            /* tp_name           */
-    sizeof(Blob),                              /* tp_basicsize      */
+    "_pygit2.MergeResult",                     /* tp_name           */
+    sizeof(MergeResult),                       /* tp_basicsize      */
     0,                                         /* tp_itemsize       */
     0,                                         /* tp_dealloc        */
     0,                                         /* tp_print          */
@@ -86,8 +114,8 @@ PyTypeObject BlobType = {
     0,                                         /* tp_getattro       */
     0,                                         /* tp_setattro       */
     0,                                         /* tp_as_buffer      */
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,  /* tp_flags          */
-    Blob__doc__,                               /* tp_doc            */
+    Py_TPFLAGS_DEFAULT,                        /* tp_flags          */
+    MergeResult__doc__,                        /* tp_doc            */
     0,                                         /* tp_traverse       */
     0,                                         /* tp_clear          */
     0,                                         /* tp_richcompare    */
@@ -96,7 +124,7 @@ PyTypeObject BlobType = {
     0,                                         /* tp_iternext       */
     0,                                         /* tp_methods        */
     0,                                         /* tp_members        */
-    Blob_getseters,                            /* tp_getset         */
+    MergeResult_getseters,                     /* tp_getset         */
     0,                                         /* tp_base           */
     0,                                         /* tp_dict           */
     0,                                         /* tp_descr_get      */
@@ -106,3 +134,4 @@ PyTypeObject BlobType = {
     0,                                         /* tp_alloc          */
     0,                                         /* tp_new            */
 };
+

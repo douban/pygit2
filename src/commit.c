@@ -54,19 +54,19 @@ compare_delta_path(const git_diff_delta *delta, git_diff_options *opts)
 }
 
 int
-diff_path_bytree(git_diff_list *diff, git_diff_options *opts, int *indexs)
+diff_path_bytree(git_diff *diff, git_diff_options *opts, int *indexs)
 {
+    git_patch* patch = NULL;
     const git_diff_delta *delta;
     unsigned int i;
     int ndeltas;
-    int err;
     int index;
     int count = 0;
     ndeltas = (int)git_diff_num_deltas(diff);
     for (i = 0; i < ndeltas; i++) {
-        err = git_diff_get_patch(NULL, &delta, diff, i);
-        if (err < 0)
-            goto cleanup;
+        delta = git_diff_get_delta(diff, i);
+        if (delta == NULL)
+            continue;
         index = compare_delta_path(delta, opts);
         if (index < 0)
             continue;
@@ -74,13 +74,11 @@ diff_path_bytree(git_diff_list *diff, git_diff_options *opts, int *indexs)
         count ++;
     }
     return count;
-cleanup:
-    return err;
 }
 
 int
 diff_tree_byparent(git_repository *repo, git_commit *commit, unsigned int index,
-        git_diff_options *opts, git_diff_list **diff)
+        git_diff_options *opts, git_diff **diff)
 {
     const git_oid *parent_oid;
     git_commit *parent;
@@ -121,7 +119,7 @@ cleanup:
 
 int
 diff_tree(git_repository *repo, git_commit *commit,
-        git_diff_options *opts, git_diff_list **diff)
+        git_diff_options *opts, git_diff **diff)
 {
     git_tree* tree = NULL;
     int err;
@@ -601,7 +599,7 @@ Commit_is_changed(Commit *self, PyObject *args, PyObject *kwds)
     git_commit *parent;
     git_tree* tree = NULL;
     git_tree* parent_tree = NULL;
-    git_diff_list *diff;
+    git_diff *diff;
     git_repository *repo;
     git_diff_options opts = GIT_DIFF_OPTIONS_INIT;
     unsigned int i;
@@ -714,7 +712,7 @@ Commit_is_changed(Commit *self, PyObject *args, PyObject *kwds)
             if (err < 0)
                 goto cleanup_error;
             err = diff_path_bytree(diff, &opts, path_indexs);
-            git_diff_list_free(diff);
+            git_diff_free(diff);
             if (err < 0)
                 goto cleanup_error;
         }
@@ -723,7 +721,7 @@ Commit_is_changed(Commit *self, PyObject *args, PyObject *kwds)
         if (err < 0)
             goto cleanup_error;
         err = diff_path_bytree(diff, &opts, path_indexs);
-        git_diff_list_free(diff);
+        git_diff_free(diff);
         if (err < 0)
             goto cleanup_error;
     }

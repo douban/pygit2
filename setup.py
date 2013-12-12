@@ -92,7 +92,7 @@ else:
         libgit2_bin = ''
         libgit2_include = os.path.join(libgit2_dir, 'include')
         libgit2_lib = cwd
-        pygit2_libs = ['git2_embed']
+        pygit2_libs = ['git2_embed', 'rt']
 
 pygit2_exts = [os.path.join('src', name) for name in os.listdir('src')
                if name.endswith('.c')]
