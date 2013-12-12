@@ -74,7 +74,6 @@ class RepositoryTest(utils.RepoTestCase):
 
         self.assertRaisesAssign(ValueError, remote, 'url', '')
 
-
     def test_refspec(self):
         remote = self.repo.remotes[0]
 
@@ -113,23 +112,6 @@ class RepositoryTest(utils.RepoTestCase):
                          remote.get_push_refspecs()[0])
         self.assertEqual('+refs/test/*:refs/test/remotes/*',
                          remote.get_push_refspecs()[1])
-
-        # FIXME: compatibility
-        # FIXME: create spec class
-        fetchspec = remote.fetchspec[0]
-        spec = '+%s:%s' % (REMOTE_FETCHSPEC_SRC, REMOTE_FETCHSPEC_DST)
-        self.assertEqual(spec, fetchspec)
-        #self.assertEqual(REMOTE_FETCHSPEC_SRC, remote.fetchspec[0])
-        #self.assertEqual(REMOTE_FETCHSPEC_DST, remote.fetchspec[1])
-
-        # FIXME: compatibility
-        new_fetchspec = ('refs/foo/*', 'refs/remotes/foo/*')
-        remote.fetchspec = new_fetchspec
-        spec = '+%s:%s' % new_fetchspec
-        fetchspec = remote.fetchspec[1]
-        self.assertEqual(spec, fetchspec)
-        #self.assertEqual(new_fetchspec[0], remote.fetchspec[0])
-        #self.assertEqual(new_fetchspec[1], remote.fetchspec[1])
 
 
     def test_remote_list(self):
