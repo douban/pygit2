@@ -62,12 +62,9 @@ diff_get_patch_byindex(git_diff* diff, size_t idx)
 {
     const git_diff_delta* delta;
     size_t i, j, hunk_amounts, lines_in_hunk, line_len, header_len, additions, deletions;
-    const char* line, *header;
-    char line_origin;
     const git_diff_hunk *hunk;
     const git_diff_line *line;
     git_patch* patch = NULL;
-    size_t i, j, hunk_amounts, lines_in_hunk, additions, deletions;
     int err;
     Hunk *py_hunk = NULL;
     Patch *py_patch = NULL;
