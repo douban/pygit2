@@ -35,6 +35,7 @@ from distutils.core import setup, Extension, Command
 from distutils.command.build import build
 from distutils.command.sdist import sdist
 from distutils import log
+from distutils import ccompiler
 import os
 import shlex
 from subprocess import Popen, PIPE
@@ -73,6 +74,7 @@ else:
         program_files = os.getenv("ProgramFiles")
         libgit2_path = '%s\libgit2' % program_files
     else:
+        compiler = ccompiler.new_compiler()
         # use libgit2 embed
         cwd = os.path.dirname(os.path.realpath(__file__))
         libgit2_dir = os.path.join(cwd, 'vendor', 'libgit2')
@@ -93,6 +95,8 @@ else:
         libgit2_include = os.path.join(libgit2_dir, 'include')
         libgit2_lib = cwd
         pygit2_libs = ['git2_embed']
+        if compiler.has_function('clock_gettime', libraries=['rt']):
+            pygit2_libs.append('rt')
 
 pygit2_exts = [os.path.join('src', name) for name in os.listdir('src')
                if name.endswith('.c')]
