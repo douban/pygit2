@@ -89,7 +89,8 @@ PyDoc_STRVAR(Branch_rename__doc__,
   "checked for validity.\n"
   "Returns the new branch.");
 
-PyObject* Branch_rename(Branch *self, PyObject *args)
+PyObject *
+Branch_rename(Branch *self, PyObject *args)
 {
     int err, force = 0;
     git_reference *c_out;
@@ -111,7 +112,8 @@ PyObject* Branch_rename(Branch *self, PyObject *args)
 PyDoc_STRVAR(Branch_branch_name__doc__,
   "The name of the local or remote branch.");
 
-PyObject* Branch_branch_name__get__(Branch *self)
+PyObject *
+Branch_branch_name__get__(Branch *self)
 {
     int err;
     const char *c_name;
@@ -129,21 +131,23 @@ PyObject* Branch_branch_name__get__(Branch *self)
 PyDoc_STRVAR(Branch_remote_name__doc__,
   "The name of the remote that the remote tracking branch belongs to.");
 
-PyObject* Branch_remote_name__get__(Branch *self)
+PyObject *
+Branch_remote_name__get__(Branch *self)
 {
     int err;
     const char *branch_name;
     char *c_name = NULL;
+    PyObject *py_name;
 
     CHECK_REFERENCE(self);
 
     branch_name = git_reference_name(self->reference);
-    // get the length of the remote name
+    /* Get the length of the remote name */
     err = git_branch_remote_name(NULL, 0, self->repo->repo, branch_name);
     if (err < GIT_OK)
         return Error_set(err);
 
-    // get the actual remote name
+    /* Get the actual remote name */
     c_name = calloc(err, sizeof(char));
     if (c_name == NULL)
         return PyErr_NoMemory();
@@ -157,7 +161,7 @@ PyObject* Branch_remote_name__get__(Branch *self)
         return Error_set(err);
     }
 
-    PyObject *py_name = to_unicode(c_name, NULL, NULL);
+    py_name = to_unicode(c_name, NULL, NULL);
     free(c_name);
 
     return py_name;
@@ -168,7 +172,8 @@ PyDoc_STRVAR(Branch_upstream__doc__,
   "The branch supporting the remote tracking branch or None if this is not a "
   "remote tracking branch. Set to None to unset.");
 
-PyObject* Branch_upstream__get__(Branch *self)
+PyObject *
+Branch_upstream__get__(Branch *self)
 {
     int err;
     git_reference *c_reference;
@@ -218,21 +223,23 @@ int Branch_upstream__set__(Branch *self, Reference *py_ref)
 PyDoc_STRVAR(Branch_upstream_name__doc__,
   "The name of the reference supporting the remote tracking branch.");
 
-PyObject* Branch_upstream_name__get__(Branch *self)
+PyObject *
+Branch_upstream_name__get__(Branch *self)
 {
     int err;
     const char *branch_name;
     char *c_name = NULL;
+    PyObject *py_name;
 
     CHECK_REFERENCE(self);
 
     branch_name = git_reference_name(self->reference);
-    // get the length of the upstream name
+    /* Get the length of the upstream name */
     err = git_branch_upstream_name(NULL, 0, self->repo->repo, branch_name);
     if (err < GIT_OK)
         return Error_set(err);
 
-    // get the actual upstream name
+    /* Get the actual upstream name */
     c_name = calloc(err, sizeof(char));
     if (c_name == NULL)
         return PyErr_NoMemory();
@@ -246,7 +253,7 @@ PyObject* Branch_upstream_name__get__(Branch *self)
         return Error_set(err);
     }
 
-    PyObject *py_name = to_unicode(c_name, NULL, NULL);
+    py_name = to_unicode(c_name, NULL, NULL);
     free(c_name);
 
     return py_name;

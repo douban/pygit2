@@ -33,6 +33,7 @@
 #include "types.h"
 #include "remote.h"
 
+
 extern PyObject *GitError;
 extern PyTypeObject RepositoryType;
 
@@ -86,7 +87,7 @@ Remote_name__set__(Remote *self, PyObject* py_name)
         free(name);
 
         if (err == GIT_OK)
-          return 0;
+            return 0;
 
         Error_set(err);
     }
@@ -95,7 +96,154 @@ Remote_name__set__(Remote *self, PyObject* py_name)
 }
 
 
+PyObject *
+get_pylist_from_git_strarray(git_strarray *strarray)
+{
+    int index;
+    PyObject *new_list;
+
+    new_list = PyList_New(strarray->count);
+    if (new_list == NULL)
+        return NULL;
+
+    for (index = 0; index < strarray->count; index++)
+        PyList_SET_ITEM(new_list, index,
+                        to_unicode(strarray->strings[index], NULL, NULL));
+
+    return new_list;
+}
+
+
+PyDoc_STRVAR(Remote_get_fetch_refspecs__doc__, "Fetch refspecs");
+
+
+PyObject *
+Remote_get_fetch_refspecs(Remote *self)
+{
+    int err;
+    git_strarray refspecs;
+    PyObject *new_list;
+
+    err = git_remote_get_fetch_refspecs(&refspecs, self->remote);
+    if (err != GIT_OK)
+        return Error_set(err);
+
+    new_list = get_pylist_from_git_strarray(&refspecs);
+
+    git_strarray_free(&refspecs);
+    return new_list;
+}
+
+
+PyDoc_STRVAR(Remote_get_push_refspecs__doc__, "Push refspecs");
+
+
+PyObject *
+Remote_get_push_refspecs(Remote *self)
+{
+    int err;
+    git_strarray refspecs;
+    PyObject *new_list;
+
+    err = git_remote_get_push_refspecs(&refspecs, self->remote);
+    if (err != GIT_OK)
+        return Error_set(err);
+
+    new_list = get_pylist_from_git_strarray(&refspecs);
+
+    git_strarray_free(&refspecs);
+    return new_list;
+}
+
+
+int
+get_strarraygit_from_pylist(git_strarray *array, PyObject *pylist)
+{
+    long index, n;
+    PyObject *item;
+    void *ptr;
+
+    n = PyObject_Length(pylist);
+    if (n < 0)
+        return -1;
+
+    /* allocate new git_strarray */
+    ptr = calloc(n, sizeof(char *));
+    if (!ptr) {
+        PyErr_SetNone(PyExc_MemoryError);
+        return -1;
+    }
+
+    array->strings = ptr;
+    array->count = n;
+
+    for (index = 0; index < n; index++) {
+        item = PyList_GetItem(pylist, index);
+        array->strings[index] = py_str_to_c_str(item, NULL);
+    }
+
+    return GIT_OK;
+}
+
+
+PyDoc_STRVAR(Remote_set_fetch_refspecs__doc__,
+    "set_fetch_refspecs([str])\n"
+    "\n");
+
+
+PyObject *
+Remote_set_fetch_refspecs(Remote *self, PyObject *args)
+{
+    int err;
+    PyObject *pyrefspecs;
+    git_strarray fetch_refspecs;
+
+    if (! PyArg_Parse(args, "O", &pyrefspecs))
+        return NULL;
+
+    if (get_strarraygit_from_pylist(&fetch_refspecs, pyrefspecs) != GIT_OK)
+        return NULL;
+
+    err = git_remote_set_fetch_refspecs(self->remote, &fetch_refspecs);
+    git_strarray_free(&fetch_refspecs);
+
+    if (err != GIT_OK)
+        return Error_set(err);
+
+    Py_RETURN_NONE;
+}
+
+
+PyDoc_STRVAR(Remote_set_push_refspecs__doc__,
+    "set_push_refspecs([str])\n"
+    "\n");
+
+
+PyObject *
+Remote_set_push_refspecs(Remote *self, PyObject *args)
+{
+    int err;
+    PyObject *pyrefspecs;
+    git_strarray push_refspecs;
+
+    if (! PyArg_Parse(args, "O", &pyrefspecs))
+        return NULL;
+
+    if (get_strarraygit_from_pylist(&push_refspecs, pyrefspecs) != 0)
+        return NULL;
+
+    err = git_remote_set_push_refspecs(self->remote, &push_refspecs);
+    git_strarray_free(&push_refspecs);
+
+    if (err != GIT_OK)
+        return Error_set(err);
+
+    Py_RETURN_NONE;
+}
+
+
 PyDoc_STRVAR(Remote_url__doc__, "Url of the remote");
+
 
 PyObject *
 Remote_url__get__(Remote *self)
@@ -116,7 +264,7 @@ Remote_url__set__(Remote *self, PyObject* py_url)
         free(url);
 
         if (err == GIT_OK)
-          return 0;
+            return 0;
 
         Error_set(err);
     }
@@ -242,7 +390,7 @@ Remote_fetch(Remote *self, PyObject *args)
 
     err = git_remote_connect(self->remote, GIT_DIRECTION_FETCH);
     if (err == GIT_OK) {
-        err = git_remote_download(self->remote, NULL, NULL);
+        err = git_remote_download(self->remote);
         if (err == GIT_OK) {
             stats = git_remote_stats(self->remote);
             py_stats = Py_BuildValue("{s:I,s:I,s:n}",
@@ -351,6 +499,10 @@ PyMethodDef Remote_methods[] = {
     METHOD(Remote, save, METH_NOARGS),
     METHOD(Remote, get_refspec, METH_O),
     METHOD(Remote, push, METH_VARARGS),
+    METHOD(Remote, get_fetch_refspecs, METH_NOARGS),
+    METHOD(Remote, set_fetch_refspecs, METH_O),
+    METHOD(Remote, get_push_refspecs, METH_NOARGS),
+    METHOD(Remote, set_push_refspecs, METH_O),
     {NULL}
 };
 

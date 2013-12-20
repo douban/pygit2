@@ -240,15 +240,139 @@ class RepositoryTest_II(utils.RepoTestCase):
         self.assertEqual(commit.hex,
                          'acecd5ea2924a4b900e7e149496e1f4b57976e51')
 
-class IsRepositoryTest(utils.RepoTestCase):
+    def test_reset_hard(self):
+        ref = "5ebeeebb320790caf276b9fc8b24546d63316533"
+        with open(os.path.join(self.repo.workdir, "hello.txt")) as f:
+            lines = f.readlines()
+        self.assertTrue("hola mundo\n" in lines)
+        self.assertTrue("bonjour le monde\n" in lines)
 
-    def test_is_repository(self):
-        directory = realpath(self.repo.workdir)
+        self.repo.reset(
+            ref,
+            pygit2.GIT_RESET_HARD)
+        self.assertEqual(self.repo.head.target.hex, ref)
 
-        self.assertRaises(TypeError, is_repository)
-        self.assertRaises(TypeError, is_repository, '', '')
-        self.assertFalse(is_repository("sadgasdfasdfasfdasfasdfsafasdfasdf"))
-        self.assertTrue(is_repository(directory))
+        with open(os.path.join(self.repo.workdir, "hello.txt")) as f:
+            lines = f.readlines()
+        #Hard reset will reset the working copy too
+        self.assertFalse("hola mundo\n" in lines)
+        self.assertFalse("bonjour le monde\n" in lines)
+
+    def test_reset_soft(self):
+        ref = "5ebeeebb320790caf276b9fc8b24546d63316533"
+        with open(os.path.join(self.repo.workdir, "hello.txt")) as f:
+            lines = f.readlines()
+        self.assertTrue("hola mundo\n" in lines)
+        self.assertTrue("bonjour le monde\n" in lines)
+
+        self.repo.reset(
+            ref,
+            pygit2.GIT_RESET_SOFT)
+        self.assertEqual(self.repo.head.target.hex, ref)
+        with open(os.path.join(self.repo.workdir, "hello.txt")) as f:
+            lines = f.readlines()
+        #Soft reset will not reset the working copy
+        self.assertTrue("hola mundo\n" in lines)
+        self.assertTrue("bonjour le monde\n" in lines)
+
+        #soft reset will keep changes in the index
+        diff = self.repo.diff(cached=True)
+        self.assertRaises(KeyError, lambda: diff[0])
+
+    def test_reset_mixed(self):
+        ref = "5ebeeebb320790caf276b9fc8b24546d63316533"
+        with open(os.path.join(self.repo.workdir, "hello.txt")) as f:
+            lines = f.readlines()
+        self.assertTrue("hola mundo\n" in lines)
+        self.assertTrue("bonjour le monde\n" in lines)
+
+        self.repo.reset(
+            ref,
+            pygit2.GIT_RESET_MIXED)
+
+        self.assertEqual(self.repo.head.target.hex, ref)
+
+        with open(os.path.join(self.repo.workdir, "hello.txt")) as f:
+            lines = f.readlines()
+        #mixed reset will not reset the working copy
+        self.assertTrue("hola mundo\n" in lines)
+        self.assertTrue("bonjour le monde\n" in lines)
+
+        #mixed reset will set the index to match working copy
+        diff = self.repo.diff(cached=True)
+        self.assertTrue("hola mundo\n" in diff.patch)
+        self.assertTrue("bonjour le monde\n" in diff.patch)
+
+
+class RepositoryTest_III(utils.RepoTestCaseForMerging):
+
+    def test_merge_none(self):
+        self.assertRaises(TypeError, self.repo.merge, None)
+
+    def test_merge_uptodate(self):
+        branch_head_hex = '5ebeeebb320790caf276b9fc8b24546d63316533'
+        branch_oid = self.repo.get(branch_head_hex).oid
+        merge_result = self.repo.merge(branch_oid)
+        self.assertTrue(merge_result.is_uptodate)
+        self.assertFalse(merge_result.is_fastforward)
+        self.assertEquals(None, merge_result.fastforward_oid)
+        self.assertEquals({}, self.repo.status())
+
+    def test_merge_fastforward(self):
+        branch_head_hex = 'e97b4cfd5db0fb4ebabf4f203979ca4e5d1c7c87'
+        branch_oid = self.repo.get(branch_head_hex).oid
+        merge_result = self.repo.merge(branch_oid)
+        self.assertFalse(merge_result.is_uptodate)
+        self.assertTrue(merge_result.is_fastforward)
+        # Asking twice to assure the reference counting is correct
+        self.assertEquals(branch_head_hex, merge_result.fastforward_oid.hex)
+        self.assertEquals(branch_head_hex, merge_result.fastforward_oid.hex)
+        self.assertEquals({}, self.repo.status())
+
+    def test_merge_no_fastforward_no_conflicts(self):
+        branch_head_hex = '03490f16b15a09913edb3a067a3dc67fbb8d41f1'
+        branch_oid = self.repo.get(branch_head_hex).oid
+        merge_result = self.repo.merge(branch_oid)
+        self.assertFalse(merge_result.is_uptodate)
+        self.assertFalse(merge_result.is_fastforward)
+        # Asking twice to assure the reference counting is correct
+        self.assertEquals(None, merge_result.fastforward_oid)
+        self.assertEquals(None, merge_result.fastforward_oid)
+        self.assertEquals({'bye.txt': 1}, self.repo.status())
+        self.assertEquals({'bye.txt': 1}, self.repo.status())
+        # Checking the index works as expected
+        self.repo.index.remove('bye.txt')
+        self.repo.index.write()
+        self.assertEquals({'bye.txt': 128}, self.repo.status())
+
+    def test_merge_no_fastforward_conflicts(self):
+        branch_head_hex = '1b2bae55ac95a4be3f8983b86cd579226d0eb247'
+        branch_oid = self.repo.get(branch_head_hex).oid
+        merge_result = self.repo.merge(branch_oid)
+        self.assertFalse(merge_result.is_uptodate)
+        self.assertFalse(merge_result.is_fastforward)
+        # Asking twice to assure the reference counting is correct
+        self.assertEquals(None, merge_result.fastforward_oid)
+        self.assertEquals(None, merge_result.fastforward_oid)
+        self.assertEquals({'.gitignore': 132}, self.repo.status())
+        self.assertEquals({'.gitignore': 132}, self.repo.status())
+        # Checking the index works as expected
+        self.repo.index.add('.gitignore')
+        self.repo.index.write()
+        self.assertEquals({'.gitignore': 2}, self.repo.status())
+
+    def test_merge_invalid_hex(self):
+        branch_head_hex = '12345678'
+        self.assertRaises(KeyError, self.repo.merge, branch_head_hex)
+
+    def test_merge_already_something_in_index(self):
+        branch_head_hex = '03490f16b15a09913edb3a067a3dc67fbb8d41f1'
+        branch_oid = self.repo.get(branch_head_hex).oid
+        with open(os.path.join(self.repo.workdir, 'inindex.txt'), 'w') as f:
+            f.write('new content')
+        self.repo.index.add('inindex.txt')
+        self.assertRaises(pygit2.GitError, self.repo.merge, branch_oid)
+
 
 class NewRepositoryTest(utils.NoRepoTestCase):
 
@@ -285,7 +409,6 @@ class InitRepositoryTest(utils.NoRepoTestCase):
         self.assertTrue(repo.is_bare)
 
 
-
 class DiscoverRepositoryTest(utils.NoRepoTestCase):
 
     def test_discover_repo(self):
@@ -293,7 +416,6 @@ class DiscoverRepositoryTest(utils.NoRepoTestCase):
         subdir = os.path.join(self._temp_dir, "test1", "test2")
         os.makedirs(subdir)
         self.assertEqual(repo.path, discover_repository(subdir))
-
 
 
 class EmptyRepositoryTest(utils.EmptyRepoTestCase):
@@ -307,7 +429,6 @@ class EmptyRepositoryTest(utils.EmptyRepoTestCase):
     def test_head(self):
         self.assertTrue(self.repo.head_is_unborn)
         self.assertFalse(self.repo.head_is_detached)
-
 
 
 class CloneRepositoryTest(utils.NoRepoTestCase):
@@ -327,8 +448,7 @@ class CloneRepositoryTest(utils.NoRepoTestCase):
     def test_clone_remote_name(self):
         repo_path = "./test/data/testrepo.git/"
         repo = clone_repository(
-            repo_path, self._temp_dir, remote_name="custom_remote"
-        )
+            repo_path, self._temp_dir, remote_name="custom_remote")
         self.assertFalse(repo.is_empty)
         self.assertEqual(repo.remotes[0].name, "custom_remote")
 
@@ -336,8 +456,7 @@ class CloneRepositoryTest(utils.NoRepoTestCase):
     def test_clone_fetch_spec(self):
         repo_path = "./test/data/testrepo.git/"
         repo = clone_repository(
-            repo_path, self._temp_dir, fetch_spec="+refs/heads/master:refs/heads/test"
-        )
+            repo_path, self._temp_dir)
         self.assertFalse(repo.is_empty)
         # FIXME: When pygit2 retrieve the fetchspec we passed to git clone.
         # fetchspec seems to be going through, but the Repository class is
@@ -347,8 +466,7 @@ class CloneRepositoryTest(utils.NoRepoTestCase):
     def test_clone_push_spec(self):
         repo_path = "./test/data/testrepo.git/"
         repo = clone_repository(
-            repo_path, self._temp_dir, push_spec="+refs/heads/master:refs/heads/test"
-        )
+            repo_path, self._temp_dir)
         self.assertFalse(repo.is_empty)
         # FIXME: When pygit2 supports retrieving the pushspec parameter,
         # enable this test
