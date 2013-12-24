@@ -87,11 +87,21 @@ TreeEntry_hex__get__(TreeEntry *self)
 }
 
 
+PyDoc_STRVAR(TreeEntry_type__doc__, "Object type.");
+
+PyObject *
+TreeEntry_type__get__(TreeEntry *self)
+{
+    return PyLong_FromLong(git_tree_entry_type(self->entry));
+}
+
+
 PyGetSetDef TreeEntry_getseters[] = {
     GETTER(TreeEntry, filemode),
     GETTER(TreeEntry, name),
     GETTER(TreeEntry, oid),
     GETTER(TreeEntry, hex),
+    GETTER(TreeEntry, type),
     {NULL}
 };
 
