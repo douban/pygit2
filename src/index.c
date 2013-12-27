@@ -136,10 +136,7 @@ Index_diff_to_workdir(Index *self, PyObject *args)
 {
     git_diff_options opts = GIT_DIFF_OPTIONS_INIT;
     git_diff *diff;
-<<<<<<< HEAD
     PyObject *py_paths = NULL;
-=======
->>>>>>> github/master
     int err;
 
     if (!PyArg_ParseTuple(args, "|IHHO", &opts.flags, &opts.context_lines,

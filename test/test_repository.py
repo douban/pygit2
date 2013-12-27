@@ -315,13 +315,8 @@ class RepositoryTest_III(utils.RepoTestCaseForMerging):
         merge_result = self.repo.merge(branch_oid)
         self.assertTrue(merge_result.is_uptodate)
         self.assertFalse(merge_result.is_fastforward)
-<<<<<<< HEAD
-        self.assertEquals(None, merge_result.fastforward_oid)
-        self.assertEquals({}, self.repo.status())
-=======
         self.assertEqual(None, merge_result.fastforward_oid)
         self.assertEqual({}, self.repo.status())
->>>>>>> github/master
 
     def test_merge_fastforward(self):
         branch_head_hex = 'e97b4cfd5db0fb4ebabf4f203979ca4e5d1c7c87'
@@ -330,15 +325,9 @@ class RepositoryTest_III(utils.RepoTestCaseForMerging):
         self.assertFalse(merge_result.is_uptodate)
         self.assertTrue(merge_result.is_fastforward)
         # Asking twice to assure the reference counting is correct
-<<<<<<< HEAD
-        self.assertEquals(branch_head_hex, merge_result.fastforward_oid.hex)
-        self.assertEquals(branch_head_hex, merge_result.fastforward_oid.hex)
-        self.assertEquals({}, self.repo.status())
-=======
         self.assertEqual(branch_head_hex, merge_result.fastforward_oid.hex)
         self.assertEqual(branch_head_hex, merge_result.fastforward_oid.hex)
         self.assertEqual({}, self.repo.status())
->>>>>>> github/master
 
     def test_merge_no_fastforward_no_conflicts(self):
         branch_head_hex = '03490f16b15a09913edb3a067a3dc67fbb8d41f1'
@@ -347,16 +336,6 @@ class RepositoryTest_III(utils.RepoTestCaseForMerging):
         self.assertFalse(merge_result.is_uptodate)
         self.assertFalse(merge_result.is_fastforward)
         # Asking twice to assure the reference counting is correct
-<<<<<<< HEAD
-        self.assertEquals(None, merge_result.fastforward_oid)
-        self.assertEquals(None, merge_result.fastforward_oid)
-        self.assertEquals({'bye.txt': 1}, self.repo.status())
-        self.assertEquals({'bye.txt': 1}, self.repo.status())
-        # Checking the index works as expected
-        self.repo.index.remove('bye.txt')
-        self.repo.index.write()
-        self.assertEquals({'bye.txt': 128}, self.repo.status())
-=======
         self.assertEqual(None, merge_result.fastforward_oid)
         self.assertEqual(None, merge_result.fastforward_oid)
         self.assertEqual({'bye.txt': 1}, self.repo.status())
@@ -365,7 +344,6 @@ class RepositoryTest_III(utils.RepoTestCaseForMerging):
         self.repo.index.remove('bye.txt')
         self.repo.index.write()
         self.assertEqual({'bye.txt': 128}, self.repo.status())
->>>>>>> github/master
 
     def test_merge_no_fastforward_conflicts(self):
         branch_head_hex = '1b2bae55ac95a4be3f8983b86cd579226d0eb247'
@@ -374,16 +352,6 @@ class RepositoryTest_III(utils.RepoTestCaseForMerging):
         self.assertFalse(merge_result.is_uptodate)
         self.assertFalse(merge_result.is_fastforward)
         # Asking twice to assure the reference counting is correct
-<<<<<<< HEAD
-        self.assertEquals(None, merge_result.fastforward_oid)
-        self.assertEquals(None, merge_result.fastforward_oid)
-        self.assertEquals({'.gitignore': 132}, self.repo.status())
-        self.assertEquals({'.gitignore': 132}, self.repo.status())
-        # Checking the index works as expected
-        self.repo.index.add('.gitignore')
-        self.repo.index.write()
-        self.assertEquals({'.gitignore': 2}, self.repo.status())
-=======
         self.assertEqual(None, merge_result.fastforward_oid)
         self.assertEqual(None, merge_result.fastforward_oid)
         self.assertEqual({'.gitignore': 132}, self.repo.status())
@@ -392,7 +360,6 @@ class RepositoryTest_III(utils.RepoTestCaseForMerging):
         self.repo.index.add('.gitignore')
         self.repo.index.write()
         self.assertEqual({'.gitignore': 2}, self.repo.status())
->>>>>>> github/master
 
     def test_merge_invalid_hex(self):
         branch_head_hex = '12345678'

@@ -44,36 +44,6 @@ for the topic), send a pull request.
 Authors
 ==============
 
-<<<<<<< HEAD
-52 developers have contributed at least 1 commit to pygit2::
-
-  J. David Ibáñez                          Andrey Devyatkin
-  Nico von Geyso                           Ben Davis
-  Carlos Martín Nieto                      Hervé Cauwelier
-  W. Trevor King                           Huang Huang
-  Dave Borowitz                            Jared Flatow
-  Daniel Rodríguez Troitiño                Jiunn Haur Lim
-  Richo Healey                             Sarath Lakshman
-  Christian Boos                           Vicent Marti
-  Julien Miotte                            Zoran Zaric
-  Martin Lenders                           Andrew Chin
-  Xavier Delannoy                          András Veres-Szentkirályi
-  Yonggang Luo                             Benjamin Kircher
-  Valentin Haenel                          Benjamin Pollack
-  Xu Tao                                   Bryan O'Sullivan
-  Bernardo Heynemann                       David Fischer
-  John Szakmeister                         David Sanders
-  Brodie Rao                               Eric Davis
-  Petr Hosek                               Eric Schrijver
-  David Versmisse                          Erik van Zijst
-  Rémi Duraffort                           Ferengee
-  Sebastian Thiel                          Hugh Cole-Baker
-  Fraser Tweedale                          Josh Bleecher Snyder
-  Han-Wen Nienhuys                         Jun Omae
-  Petr Viktorin                            Ridge Kennedy
-  Alex Chamberlain                         Rui Abreu Ferreira
-  Amit Bakshi                              pistacchio
-=======
 56 developers have contributed at least 1 commit to pygit2::
 
   J. David Ibáñez                          Andrey Devyatkin
@@ -104,48 +74,11 @@ Authors
   Petr Viktorin                            Óscar San José
   Alex Chamberlain                         Ridge Kennedy
   Amit Bakshi                              Rui Abreu Ferreira
->>>>>>> github/master
 
 
 Changelog
 ==============
 
-<<<<<<< HEAD
-0.20.0 (2013-11-24)
--------------------
-
-API changes:
-
-- Renamed ``Repository.head_is_orphaned`` to ``Repository.head_is_unborn``
-
-- ``Repository.listall_references`` and ``Repository.listall_branches`` now
-  return a list, instead of a tuple
-
-- The prototype of ``clone_repository`` changed from::
-
-    # Before
-    pygit2.clone_repository(url, path, bare=False, remote_name='origin',
-                            push_url=None, fetch_spec=None, push_spec=None,
-                            checkout_branch=None)
-
-    # Now
-    pygit2.clone_repository(url, path, bare=False, ignore_cert_errors=False,
-                            remote_name='origin', checkout_branch=None)
-
-New API:
-
-- Added support for blame
-
-- New:
-
-  - ``Reference.log_append(...)``
-  - ``Reference.shorthand``
-  - ``Blog.is_binary``
-  - ``len(Diff)``
-  - ``Patch.additions``
-  - ``Patch.deletions``
-  - ``Patch.is_binary``
-=======
 0.20.1 (2013-12-24)
 -------------------
 
@@ -224,7 +157,6 @@ New API:
 - Now ``Repository.listall_references()`` and
   ``Repository.listall_branches()`` return a list, not a tuple:
   `#289 <https://github.com/libgit2/pygit2/pull/289>`_
->>>>>>> github/master
 
 
 License

@@ -151,15 +151,8 @@ clone_repository(PyObject *self, PyObject *args) {
     git_repository *repo;
     const char *url;
     const char *path;
-<<<<<<< HEAD
-    const char *remote_name, *push_url, *fetch_spec;
-    const char *push_spec, *checkout_branch;
-    const git_error *git_err;
-    unsigned int bare, ignore_cert_errors;
-=======
     unsigned int bare, ignore_cert_errors;
     const char *remote_name, *checkout_branch;
->>>>>>> github/master
     int err;
     git_clone_options opts = GIT_CLONE_OPTIONS_INIT;
 

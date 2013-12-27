@@ -27,11 +27,7 @@ When those are installed, you can install pygit2:
 
 .. note:: A minor version of pygit2 must be used with the corresponding minor
    version of libgit2. For example, pygit2 v0.20.x must be used with libgit2
-<<<<<<< HEAD
-   v0.20.0.
-=======
    v0.20.1.
->>>>>>> github/master
 
 Building on \*nix (including OS X)
 ===================================

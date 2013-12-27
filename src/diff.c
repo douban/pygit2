@@ -61,17 +61,10 @@ PyObject*
 diff_get_patch_byindex(git_diff* diff, size_t idx)
 {
     const git_diff_delta* delta;
-<<<<<<< HEAD
+    const git_diff_hunk *hunk;
+    const git_diff_line *line;
+    git_patch* patch = NULL;
     size_t i, j, hunk_amounts, lines_in_hunk, line_len, header_len, additions, deletions;
-    const git_diff_hunk *hunk;
-    const git_diff_line *line;
-    git_patch* patch = NULL;
-=======
-    const git_diff_hunk *hunk;
-    const git_diff_line *line;
-    git_patch* patch = NULL;
-    size_t i, j, hunk_amounts, lines_in_hunk, additions, deletions;
->>>>>>> github/master
     int err;
     Hunk *py_hunk = NULL;
     Patch *py_patch = NULL;
@@ -150,11 +143,7 @@ Patch_dealloc(Patch *self)
     free(self->old_oid);
     free(self->new_oid);
     /* We do not have to free old_file_path and new_file_path, they will
-<<<<<<< HEAD
-     * be freed by git_diff_free in Diff_dealloc */
-=======
      * be freed by git_diff_list_free in Diff_dealloc */
->>>>>>> github/master
     PyObject_Del(self);
 }
 
@@ -287,7 +276,6 @@ Diff_len(Diff *self)
     assert(self->list);
     return (Py_ssize_t)git_diff_num_deltas(self->list);
 }
-<<<<<<< HEAD
 
 PyDoc_STRVAR(Diff_size__doc__, "Returns the number of deltas/patches in this diff.");
 
@@ -296,8 +284,6 @@ Diff_size__get__(Diff *self)
 {
     return PyLong_FromSize_t(git_diff_num_deltas(self->list));
 }
-=======
->>>>>>> github/master
 
 PyDoc_STRVAR(Diff_patch__doc__, "Patch diff string.");
 
