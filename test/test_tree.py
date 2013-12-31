@@ -33,6 +33,7 @@ import operator
 import unittest
 
 from . import utils
+import pygit2
 
 
 TREE_SHA = '967fce8df97cc71722d3c2a5930ef3e6f1d27b12'
@@ -60,12 +61,14 @@ class TreeTest(utils.BareRepoTestCase):
         self.assertTreeEntryEqual(tree[0], sha, 'a', 0o0100644)
         self.assertTreeEntryEqual(tree[-3], sha, 'a', 0o0100644)
         self.assertTreeEntryEqual(tree['a'], sha, 'a', 0o0100644)
+        self.assertEqual(tree['a'].type, pygit2.GIT_OBJ_BLOB)
 
         sha = '85f120ee4dac60d0719fd51731e4199aa5a37df6'
         self.assertTrue('b' in tree)
         self.assertTreeEntryEqual(tree[1], sha, 'b', 0o0100644)
         self.assertTreeEntryEqual(tree[-2], sha, 'b', 0o0100644)
         self.assertTreeEntryEqual(tree['b'], sha, 'b', 0o0100644)
+        self.assertEqual(tree['b'].type, pygit2.GIT_OBJ_BLOB)
 
         sha = '297efb891a47de80be0cfe9c639e4b8c9b450989'
         self.assertTreeEntryEqual(tree['c/d'], sha, 'd', 0o0100644)

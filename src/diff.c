@@ -61,10 +61,10 @@ PyObject*
 diff_get_patch_byindex(git_diff* diff, size_t idx)
 {
     const git_diff_delta* delta;
-    size_t i, j, hunk_amounts, lines_in_hunk, line_len, header_len, additions, deletions;
     const git_diff_hunk *hunk;
     const git_diff_line *line;
     git_patch* patch = NULL;
+    size_t i, j, hunk_amounts, lines_in_hunk, line_len, header_len, additions, deletions;
     int err;
     Hunk *py_hunk = NULL;
     Patch *py_patch = NULL;
@@ -143,7 +143,7 @@ Patch_dealloc(Patch *self)
     free(self->old_oid);
     free(self->new_oid);
     /* We do not have to free old_file_path and new_file_path, they will
-     * be freed by git_diff_free in Diff_dealloc */
+     * be freed by git_diff_list_free in Diff_dealloc */
     PyObject_Del(self);
 }
 
