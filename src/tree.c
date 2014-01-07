@@ -34,6 +34,7 @@
 #include "oid.h"
 #include "tree.h"
 #include "diff.h"
+#include "mergeresult.h"
 
 extern PyTypeObject TreeType;
 extern PyTypeObject DiffType;
@@ -402,7 +403,6 @@ Tree_diff_to_workdir(Tree *self, PyObject *args)
     return wrap_diff(diff, py_repo);
 }
 
-
 PyDoc_STRVAR(Tree_diff_to_index__doc__,
   "diff_to_index(index, [flags, context_lines, interhunk_lines, paths]) -> Diff\n"
   "\n"
@@ -517,7 +517,38 @@ Tree_diff_to_tree(Tree *self, PyObject *args, PyObject *kwds)
 
     return wrap_diff(diff, py_repo);
 }
+PyDoc_STRVAR(Tree_merge__doc__,
+  "merge([tree, tree, tree]) -> Index\n"
+  "\n");
 
+PyObject *
+Tree_merge(Tree *self, Tree *others, Tree *base)
+{
+    git_index *merge_index;
+    Repository *py_repo;
+    git_merge_tree_opts opts = GIT_MERGE_TREE_OPTS_INIT;
+    int error;
+    Index *py_merge_index;
+
+    error = git_merge_trees(&merge_index, self->repo, base->tree,
+                            self->tree, others->tree, &opts);
+    if (error < 0)
+        return Error_set(error);
+
+    //how to handle git_index? and it must be freed at last
+
+    py_merge_index = PyObject_New(Index, &IndexType);
+    if (py_merge_index==NULL){
+        git_index_free(merge_index);
+        return NULL;
+    }
+
+
+    py_merge_index->repo = self->repo;
+    py_merge_index->index = merge_index;
+    return (PyObject*) Index_init(py_merge_index);
+
+}
 
 PySequenceMethods Tree_as_sequence = {
     0,                          /* sq_length */
@@ -541,6 +572,15 @@ PyMethodDef Tree_methods[] = {
     METHOD(Tree, diff_to_tree, METH_VARARGS | METH_KEYWORDS),
     METHOD(Tree, diff_to_workdir, METH_VARARGS),
     METHOD(Tree, diff_to_index, METH_VARARGS | METH_KEYWORDS),
+<<<<<<< HEAD
+<<<<<<< HEAD
+    METHOD(Tree, merge, METH_VARARGS),
+=======
+    METHOD(Tree, merge, METH_VARARGS | METH_KEYWORDS),
+>>>>>>> start tree merge
+=======
+    METHOD(Tree, merge, METH_VARARGS),
+>>>>>>> 去掉INCREF
     {NULL}
 };
 

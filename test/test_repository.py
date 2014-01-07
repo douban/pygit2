@@ -1,4 +1,4 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
 #
 # Copyright 2010-2013 The pygit2 contributors
 #
@@ -317,6 +317,18 @@ class RepositoryTest_III(utils.RepoTestCaseForMerging):
         self.assertFalse(merge_result.is_fastforward)
         self.assertEqual(None, merge_result.fastforward_oid)
         self.assertEqual({}, self.repo.status())
+
+    def test_tree_merge_uptodate(self):
+        branch_head_hex = 'e97b4cfd5db0fb4ebabf4f203979ca4e5d1c7c87'
+
+        branch = self.repo.get(branch_head_hex)
+        branch_tree = branch.tree
+        merge_base = self.repo.merge_base(branch_head_hex, self.repo.head.target.hex)
+        merge_base_tree = self.repo.get(merge_base.hex).tree
+        head_tree = self.repo.get(self.repo.head.target.hex).tree
+        merge_index = head_tree.merge(branch_tree, merge_base_tree)
+        self.assertTrue(merge_index)
+
 
     def test_merge_fastforward(self):
         branch_head_hex = 'e97b4cfd5db0fb4ebabf4f203979ca4e5d1c7c87'

@@ -47,6 +47,7 @@ class IndexTest(utils.RepoTestCase):
 
     def test_index(self):
         self.assertNotEqual(None, self.repo.index)
+        self.assertFalse(self.repo.index.has_conflicts)
 
     def test_read(self):
         index = self.repo.index
