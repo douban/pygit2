@@ -517,6 +517,8 @@ Tree_diff_to_tree(Tree *self, PyObject *args, PyObject *kwds)
 
     return wrap_diff(diff, py_repo);
 }
+
+
 PyDoc_STRVAR(Tree_merge__doc__,
   "merge([tree, tree, tree]) -> Index\n"
   "\n");
@@ -527,28 +529,29 @@ Tree_merge(Tree *self, Tree *others, Tree *base)
     git_index *merge_index;
     Repository *py_repo;
     git_merge_tree_opts opts = GIT_MERGE_TREE_OPTS_INIT;
-    int error;
     Index *py_merge_index;
+    int error;
 
-    error = git_merge_trees(&merge_index, self->repo, base->tree,
+    py_repo = self->repo;
+    error = git_merge_trees(&merge_index, py_repo->repo, base->tree,
                             self->tree, others->tree, &opts);
     if (error < 0)
         return Error_set(error);
 
-    //how to handle git_index? and it must be freed at last
-
-    py_merge_index = PyObject_New(Index, &IndexType);
-    if (py_merge_index==NULL){
+    py_merge_index = PyObject_GC_New(Index, &IndexType);
+    if (!py_merge_index) {
         git_index_free(merge_index);
         return NULL;
     }
 
-
-    py_merge_index->repo = self->repo;
+    Py_INCREF(py_repo);
+    py_merge_index->repo = py_repo;
     py_merge_index->index = merge_index;
-    return (PyObject*) Index_init(py_merge_index);
+    PyObject_GC_Track(py_merge_index, &IndexType);
+    return (PyObject *) py_merge_index;
 
 }
+
 
 PySequenceMethods Tree_as_sequence = {
     0,                          /* sq_length */
