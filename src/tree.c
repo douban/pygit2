@@ -524,19 +524,25 @@ PyDoc_STRVAR(Tree_merge__doc__,
   "\n");
 
 PyObject *
-Tree_merge(Tree *self, Tree *others, Tree *base)
+Tree_merge(Tree *self, PyObject *args, PyObject *kwds)
 {
     git_index *merge_index;
     Repository *py_repo;
+    Tree *py_others;
+    Tree *py_base;
     git_merge_tree_opts opts = GIT_MERGE_TREE_OPTS_INIT;
     Index *py_merge_index;
-    int error;
+    int err;
+
+    if (!PyArg_ParseTuple(args, "O!O!", &TreeType, &py_others,
+                                        &TreeType, &py_base))
+        return NULL;
 
     py_repo = self->repo;
-    error = git_merge_trees(&merge_index, py_repo->repo, base->tree,
-                            self->tree, others->tree, &opts);
-    if (error < 0)
-        return Error_set(error);
+    err = git_merge_trees(&merge_index, py_repo->repo, py_base->tree,
+                            self->tree, py_others->tree, &opts);
+    if (err < 0)
+        return Error_set(err);
 
     py_merge_index = PyObject_GC_New(Index, &IndexType);
     if (!py_merge_index) {
@@ -547,7 +553,7 @@ Tree_merge(Tree *self, Tree *others, Tree *base)
     Py_INCREF(py_repo);
     py_merge_index->repo = py_repo;
     py_merge_index->index = merge_index;
-    PyObject_GC_Track(py_merge_index, &IndexType);
+    PyObject_GC_Track(py_merge_index);
     return (PyObject *) py_merge_index;
 
 }
