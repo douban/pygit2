@@ -171,6 +171,7 @@ class RepositoryTest(utils.BareRepoTestCase):
         written_sha1 = self.repo.create_blob(data)
         self.assertEqual(hashed_sha1, written_sha1)
 
+
 class RepositoryTest_II(utils.RepoTestCase):
 
     def test_is_empty(self):
@@ -254,7 +255,7 @@ class RepositoryTest_II(utils.RepoTestCase):
 
         with open(os.path.join(self.repo.workdir, "hello.txt")) as f:
             lines = f.readlines()
-        #Hard reset will reset the working copy too
+        # Hard reset will reset the working copy too
         self.assertFalse("hola mundo\n" in lines)
         self.assertFalse("bonjour le monde\n" in lines)
 
@@ -271,11 +272,11 @@ class RepositoryTest_II(utils.RepoTestCase):
         self.assertEqual(self.repo.head.target.hex, ref)
         with open(os.path.join(self.repo.workdir, "hello.txt")) as f:
             lines = f.readlines()
-        #Soft reset will not reset the working copy
+        # Soft reset will not reset the working copy
         self.assertTrue("hola mundo\n" in lines)
         self.assertTrue("bonjour le monde\n" in lines)
 
-        #soft reset will keep changes in the index
+        # soft reset will keep changes in the index
         diff = self.repo.diff(cached=True)
         self.assertRaises(KeyError, lambda: diff[0])
 
@@ -294,11 +295,11 @@ class RepositoryTest_II(utils.RepoTestCase):
 
         with open(os.path.join(self.repo.workdir, "hello.txt")) as f:
             lines = f.readlines()
-        #mixed reset will not reset the working copy
+        # mixed reset will not reset the working copy
         self.assertTrue("hola mundo\n" in lines)
         self.assertTrue("bonjour le monde\n" in lines)
 
-        #mixed reset will set the index to match working copy
+        # mixed reset will set the index to match working copy
         diff = self.repo.diff(cached=True)
         self.assertTrue("hola mundo\n" in diff.patch)
         self.assertTrue("bonjour le monde\n" in diff.patch)
@@ -323,7 +324,9 @@ class RepositoryTest_III(utils.RepoTestCaseForMerging):
 
         branch = self.repo.get(branch_head_hex)
         branch_tree = branch.tree
-        merge_base = self.repo.merge_base(branch_head_hex, self.repo.head.target.hex)
+        merge_base = self.repo.merge_base(
+            branch_head_hex,
+            self.repo.head.target.hex)
         merge_base_tree = self.repo.get(merge_base.hex).tree
         head_tree = self.repo.get(self.repo.head.target.hex).tree
         merge_index = head_tree.merge(branch_tree, merge_base_tree)
@@ -464,7 +467,6 @@ class CloneRepositoryTest(utils.NoRepoTestCase):
         self.assertFalse(repo.is_empty)
         self.assertEqual(repo.remotes[0].name, "custom_remote")
 
-
     def test_clone_fetch_spec(self):
         repo_path = "./test/data/testrepo.git/"
         repo = clone_repository(
@@ -495,6 +497,20 @@ class CloneRepositoryTest(utils.NoRepoTestCase):
         # enable this test
         # self.assertEqual(repo.remotes[0].current_branch, "test")
 
+
+class MergeResolveTest(utils.MergeResolveTestCase):
+
+    def test_tree_merge_conflicts(self):
+        ours = self.repo.revparse_single("trivial-4")
+        ours_tree = ours.tree
+        theirs = self.repo.revparse_single("trivial-4-branch")
+        theirs_tree = theirs.tree
+        merge_base = self.repo.merge_base(ours.hex,
+                                          theirs.hex)
+        merge_base_tree = self.repo.get(merge_base.hex).tree
+        merge_index = ours_tree.merge(theirs_tree, merge_base_tree)
+        self.assertTrue(merge_index)
+        self.assertTrue(merge_index.has_conflicts)
 
 if __name__ == '__main__':
     unittest.main()
