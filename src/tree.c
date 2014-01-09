@@ -520,8 +520,8 @@ Tree_diff_to_tree(Tree *self, PyObject *args, PyObject *kwds)
 
 
 PyDoc_STRVAR(Tree_merge__doc__,
-  "merge([tree, tree, tree]) -> Index\n"
-  "\n");
+  "merge([base_tree, others_tree]) -> Index\n"
+  "Merges two trees and returns the Index object that reflects the result of the merge\n");
 
 PyObject *
 Tree_merge(Tree *self, PyObject *args, PyObject *kwds)
