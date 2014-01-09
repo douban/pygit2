@@ -581,15 +581,7 @@ PyMethodDef Tree_methods[] = {
     METHOD(Tree, diff_to_tree, METH_VARARGS | METH_KEYWORDS),
     METHOD(Tree, diff_to_workdir, METH_VARARGS),
     METHOD(Tree, diff_to_index, METH_VARARGS | METH_KEYWORDS),
-<<<<<<< HEAD
-<<<<<<< HEAD
     METHOD(Tree, merge, METH_VARARGS),
-=======
-    METHOD(Tree, merge, METH_VARARGS | METH_KEYWORDS),
->>>>>>> start tree merge
-=======
-    METHOD(Tree, merge, METH_VARARGS),
->>>>>>> 去掉INCREF
     {NULL}
 };
 
