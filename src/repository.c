@@ -618,7 +618,7 @@ Repository_merge(Repository *self, PyObject *py_oid)
     if (err < 0)
         return Error_set(err);
 
-    py_merge_result = git_merge_result_to_python(merge_result);
+    py_merge_result = git_merge_result_to_python(merge_result, self->repo);
     return py_merge_result;
 }
 

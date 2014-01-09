@@ -30,6 +30,7 @@
 #include "utils.h"
 #include "types.h"
 #include "oid.h"
+#include "index.h"
 #include "repository.h"
 #include "mergeresult.h"
 
@@ -37,7 +38,7 @@ extern PyTypeObject MergeResultType;
 extern PyTypeObject IndexType;
 
 PyObject *
-git_merge_result_to_python(git_merge_result *merge_result)
+git_merge_result_to_python(git_merge_result *merge_result, Repository *repo)
 {
     MergeResult *py_merge_result;
 
@@ -46,6 +47,7 @@ git_merge_result_to_python(git_merge_result *merge_result)
         return NULL;
 
     py_merge_result->result = merge_result;
+    py_merge_result->repo = repo;
 
     return (PyObject*) py_merge_result;
 }
@@ -85,10 +87,19 @@ MergeResult_fastforward_oid__get__(MergeResult *self)
     else Py_RETURN_NONE;
 }
 
+PyDoc_STRVAR(MergeResult_index__get__doc__, "return merged index");
+
+PyObject *
+MergeResult_index__get__(MergeResult *self)
+{
+    return wrap_index(self->result->index, self->repo);
+}
+
 PyGetSetDef MergeResult_getseters[] = {
     GETTER(MergeResult, is_uptodate),
     GETTER(MergeResult, is_fastforward),
     GETTER(MergeResult, fastforward_oid),
+    GETTER(MergeResult, index),
     {NULL},
 };
 

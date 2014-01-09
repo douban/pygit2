@@ -220,6 +220,7 @@ typedef struct {
 typedef struct {
     PyObject_HEAD
     git_merge_result *result;
+    Repository *repo;
 } MergeResult;
 
 #endif
