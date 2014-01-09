@@ -34,6 +34,7 @@
 #include "oid.h"
 #include "tree.h"
 #include "diff.h"
+#include "mergeresult.h"
 
 extern PyTypeObject TreeType;
 extern PyTypeObject DiffType;
@@ -402,7 +403,6 @@ Tree_diff_to_workdir(Tree *self, PyObject *args)
     return wrap_diff(diff, py_repo);
 }
 
-
 PyDoc_STRVAR(Tree_diff_to_index__doc__,
   "diff_to_index(index, [flags, context_lines, interhunk_lines, paths]) -> Diff\n"
   "\n"
@@ -519,6 +519,46 @@ Tree_diff_to_tree(Tree *self, PyObject *args, PyObject *kwds)
 }
 
 
+PyDoc_STRVAR(Tree_merge__doc__,
+  "merge([base_tree, others_tree]) -> Index\n"
+  "Merges two trees and returns the Index object that reflects the result of the merge\n");
+
+PyObject *
+Tree_merge(Tree *self, PyObject *args, PyObject *kwds)
+{
+    git_index *merge_index;
+    Repository *py_repo;
+    Tree *py_others;
+    Tree *py_base;
+    git_merge_tree_opts opts = GIT_MERGE_TREE_OPTS_INIT;
+    Index *py_merge_index;
+    int err;
+
+    if (!PyArg_ParseTuple(args, "O!O!", &TreeType, &py_others,
+                                        &TreeType, &py_base))
+        return NULL;
+
+    py_repo = self->repo;
+    err = git_merge_trees(&merge_index, py_repo->repo, py_base->tree,
+                            self->tree, py_others->tree, &opts);
+    if (err < 0)
+        return Error_set(err);
+
+    py_merge_index = PyObject_GC_New(Index, &IndexType);
+    if (!py_merge_index) {
+        git_index_free(merge_index);
+        return NULL;
+    }
+
+    Py_INCREF(py_repo);
+    py_merge_index->repo = py_repo;
+    py_merge_index->index = merge_index;
+    PyObject_GC_Track(py_merge_index);
+    return (PyObject *) py_merge_index;
+
+}
+
+
 PySequenceMethods Tree_as_sequence = {
     0,                          /* sq_length */
     0,                          /* sq_concat */
@@ -541,6 +581,7 @@ PyMethodDef Tree_methods[] = {
     METHOD(Tree, diff_to_tree, METH_VARARGS | METH_KEYWORDS),
     METHOD(Tree, diff_to_workdir, METH_VARARGS),
     METHOD(Tree, diff_to_index, METH_VARARGS | METH_KEYWORDS),
+    METHOD(Tree, merge, METH_VARARGS),
     {NULL}
 };
 

@@ -434,6 +434,21 @@ Index_write_tree(Index *self)
     return git_oid_to_python(&oid);
 }
 
+PyDoc_STRVAR(Index_has_conflicts__doc__, "True if has conflicts, False if not.");
+
+PyObject *
+Index_has_conflicts__get__(Index *self)
+{
+    if (git_index_has_conflicts(self->index))
+        Py_RETURN_TRUE;
+    Py_RETURN_FALSE;
+}
+
+PyGetSetDef Index_getseters[] = {
+    GETTER(Index, has_conflicts),
+    {NULL}
+};
+
 PyMethodDef Index_methods[] = {
     METHOD(Index, add, METH_VARARGS),
     METHOD(Index, remove, METH_VARARGS),
@@ -499,7 +514,7 @@ PyTypeObject IndexType = {
     0,                                         /* tp_iternext       */
     Index_methods,                             /* tp_methods        */
     0,                                         /* tp_members        */
-    0,                                         /* tp_getset         */
+    Index_getseters,                           /* tp_getset         */
     0,                                         /* tp_base           */
     0,                                         /* tp_dict           */
     0,                                         /* tp_descr_get      */
