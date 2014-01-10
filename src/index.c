@@ -73,11 +73,12 @@ Index_dealloc(Index* self)
 }
 
 PyObject *
-wrap_index(git_index *index, Repository *repo)
+wrap_index(git_index *index, git_repository *repo)
 {
     Index *py_index;
     py_index = PyObject_GC_New(Index, &IndexType);
     if (py_index) {
+        Py_INCREF(repo);
         py_index->repo = repo;
         py_index->index = index;
         PyObject_GC_Track(py_index);

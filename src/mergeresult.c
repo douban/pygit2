@@ -38,7 +38,7 @@ extern PyTypeObject MergeResultType;
 extern PyTypeObject IndexType;
 
 PyObject *
-git_merge_result_to_python(git_merge_result *merge_result, Repository *repo)
+git_merge_result_to_python(git_merge_result *merge_result, git_repository *repo)
 {
     MergeResult *py_merge_result;
 
@@ -87,20 +87,10 @@ MergeResult_fastforward_oid__get__(MergeResult *self)
     else Py_RETURN_NONE;
 }
 
-PyDoc_STRVAR(MergeResult_index__doc__, "Index");
-
-PyObject *
-MergeResult_index__get__(MergeResult *self)
-{
-    git_index *index = self->result->index;
-    return wrap_index(index, self->repo);
-}
-
 PyGetSetDef MergeResult_getseters[] = {
     GETTER(MergeResult, is_uptodate),
     GETTER(MergeResult, is_fastforward),
     GETTER(MergeResult, fastforward_oid),
-    GETTER(MergeResult, index),
     {NULL},
 };
 

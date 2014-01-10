@@ -622,6 +622,29 @@ Repository_merge(Repository *self, PyObject *py_oid)
     return py_merge_result;
 }
 
+PyDoc_STRVAR(Repository_merge_commit__doc__,
+  "merge two git commit, return an index");
+
+PyObject *
+Repository_merge_commit(Repository *self, PyObject *args)
+{
+    git_index *merge_index;
+    Commit *our_commit, *their_commit;
+    git_repository *repo;
+    git_merge_tree_opts opts = GIT_MERGE_TREE_OPTS_INIT;
+    int err;
+
+    if (!PyArg_ParseTuple(args, "O!O!", &CommitType, &our_commit,
+                                        &CommitType, &their_commit))
+        return NULL;
+    repo = self->repo;
+    err = git_merge_commits(&merge_index, repo, our_commit->commit, their_commit->commit, &opts);
+    if (err < 0)
+        return Error_set(err);
+
+    return wrap_index(merge_index, self->repo);
+}
+
 PyDoc_STRVAR(Repository_walk__doc__,
   "walk(oid, sort_mode) -> iterator\n"
   "\n"
@@ -1597,6 +1620,7 @@ PyMethodDef Repository_methods[] = {
     METHOD(Repository, walk, METH_VARARGS),
     METHOD(Repository, merge_base, METH_VARARGS),
     METHOD(Repository, merge, METH_O),
+    METHOD(Repository, merge_commit, METH_VARARGS),
     METHOD(Repository, read, METH_O),
     METHOD(Repository, write, METH_VARARGS),
     METHOD(Repository, create_reference_direct, METH_VARARGS),
