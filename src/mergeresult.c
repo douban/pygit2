@@ -46,8 +46,8 @@ git_merge_result_to_python(git_merge_result *merge_result, Repository *repo)
     if (!py_merge_result)
         return NULL;
 
-    py_merge_result->result = merge_result;
     py_merge_result->repo = repo;
+    py_merge_result->result = merge_result;
 
     return (PyObject*) py_merge_result;
 }
@@ -87,12 +87,13 @@ MergeResult_fastforward_oid__get__(MergeResult *self)
     else Py_RETURN_NONE;
 }
 
-PyDoc_STRVAR(MergeResult_index__get__doc__, "return merged index");
+PyDoc_STRVAR(MergeResult_index__doc__, "Index");
 
 PyObject *
 MergeResult_index__get__(MergeResult *self)
 {
-    return wrap_index(self->result->index, self->repo);
+    git_index *index = self->result->index;
+    return wrap_index(index, self->repo);
 }
 
 PyGetSetDef MergeResult_getseters[] = {

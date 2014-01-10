@@ -219,8 +219,8 @@ typedef struct {
 /* git_merge */
 typedef struct {
     PyObject_HEAD
-    git_merge_result *result;
     Repository *repo;
+    git_merge_result *result;
 } MergeResult;
 
 #endif
