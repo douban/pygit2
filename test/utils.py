@@ -66,6 +66,7 @@ def rmtree(path):
 
 
 class TemporaryRepository(object):
+
     def __init__(self, repo_spec):
         self.repo_spec = repo_spec
 
@@ -125,6 +126,7 @@ class NoRepoTestCase(unittest.TestCase):
 
 
 class AutoRepoTestCase(NoRepoTestCase):
+
     def setUp(self):
         super(AutoRepoTestCase, self).setUp()
         self.repo_ctxtmgr = TemporaryRepository(self.repo_spec)
@@ -139,6 +141,11 @@ class AutoRepoTestCase(NoRepoTestCase):
 class BareRepoTestCase(AutoRepoTestCase):
 
     repo_spec = 'git', 'testrepo.git'
+
+
+class MergeResolveTestCase(AutoRepoTestCase):
+
+    repo_spec = 'tar', 'merge-resolve'
 
 
 class RepoTestCase(AutoRepoTestCase):
