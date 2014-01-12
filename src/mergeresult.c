@@ -30,7 +30,6 @@
 #include "utils.h"
 #include "types.h"
 #include "oid.h"
-#include "index.h"
 #include "repository.h"
 #include "mergeresult.h"
 
@@ -38,7 +37,7 @@ extern PyTypeObject MergeResultType;
 extern PyTypeObject IndexType;
 
 PyObject *
-git_merge_result_to_python(git_merge_result *merge_result, git_repository *repo)
+git_merge_result_to_python(git_merge_result *merge_result)
 {
     MergeResult *py_merge_result;
 
@@ -46,7 +45,6 @@ git_merge_result_to_python(git_merge_result *merge_result, git_repository *repo)
     if (!py_merge_result)
         return NULL;
 
-    py_merge_result->repo = repo;
     py_merge_result->result = merge_result;
 
     return (PyObject*) py_merge_result;

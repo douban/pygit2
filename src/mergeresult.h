@@ -32,6 +32,6 @@
 #include <Python.h>
 #include <git2.h>
 
-PyObject* git_merge_result_to_python(git_merge_result *merge_result, git_repository *repo);
+PyObject* git_merge_result_to_python(git_merge_result *merge_result);
 
 #endif

@@ -333,6 +333,14 @@ class RepositoryTest_III(utils.RepoTestCaseForMerging):
         self.assertTrue(merge_index)
         self.assertFalse(merge_index.has_conflicts)
 
+    def test_repo_merge_uptodate(self):
+        branch_head_hex = 'e97b4cfd5db0fb4ebabf4f203979ca4e5d1c7c87'
+        branch_commit = self.repo.get(branch_head_hex)
+        head_commit = self.repo.get(self.repo.head.target.hex)
+        merge_index = self.repo.merge_commits(head_commit, branch_commit)
+        self.assertTrue(merge_index)
+        self.assertFalse(merge_index.has_confilicts)
+
     def test_merge_fastforward(self):
         branch_head_hex = 'e97b4cfd5db0fb4ebabf4f203979ca4e5d1c7c87'
         branch_oid = self.repo.get(branch_head_hex).oid
