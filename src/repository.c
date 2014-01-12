@@ -40,6 +40,7 @@
 #include "blame.h"
 #include "mergeresult.h"
 #include <git2/odb_backend.h>
+#include "git2.h"
 
 extern PyObject *GitError;
 
