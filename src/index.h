@@ -44,6 +44,6 @@ PyObject* Index_write_tree(Index *self);
 Py_ssize_t Index_len(Index *self);
 int Index_setitem(Index *self, PyObject *key, PyObject *value);
 
-PyObject* wrap_index(git_index *index, git_repository *repo);
+PyObject* wrap_index(git_index *index, Repository *repo);
 
 #endif

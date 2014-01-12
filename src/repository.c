@@ -39,8 +39,8 @@
 #include "branch.h"
 #include "blame.h"
 #include "mergeresult.h"
+#include "index.h"
 #include <git2/odb_backend.h>
-#include "git2.h"
 
 extern PyObject *GitError;
 
@@ -629,21 +629,19 @@ PyDoc_STRVAR(Repository_merge_commits__doc__,
 PyObject *
 Repository_merge_commits(Repository *self, PyObject *args)
 {
-    git_index *merge_index;
     Commit *our_commit, *their_commit;
-    git_repository *repo;
     git_merge_tree_opts opts = GIT_MERGE_TREE_OPTS_INIT;
+    git_index *merge_index;
     int err;
 
     if (!PyArg_ParseTuple(args, "O!O!", &CommitType, &our_commit,
                                         &CommitType, &their_commit))
         return NULL;
-    repo = self->repo;
-    err = git_merge_commits(&merge_index, repo, our_commit->commit, their_commit->commit, &opts);
+    err = git_merge_commits(&merge_index, self->repo, our_commit->commit, their_commit->commit, &opts);
     if (err < 0)
         return Error_set(err);
 
-    return wrap_index(merge_index, self->repo);
+    return wrap_index(merge_index, self);
 }
 
 PyDoc_STRVAR(Repository_walk__doc__,
