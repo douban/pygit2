@@ -30,13 +30,8 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
 import unittest
-import pygit2
 from pygit2 import Signature
-from pygit2 import GIT_DIFF_INCLUDE_UNMODIFIED
-from pygit2 import GIT_DIFF_IGNORE_WHITESPACE, GIT_DIFF_IGNORE_WHITESPACE_EOL
 from . import utils
-from itertools import chain
-from datetime import datetime
 
 PATH = 'hello.txt'
 
@@ -131,6 +126,7 @@ class BlameTest(utils.RepoTestCase):
                 self.assertEqualSignature(HUNKS[i][2], hunk.final_committer)
                 self.assertEqual(hunk.orig_commit_id, HUNKS[i][0])
                 self.assertEqual(hunk.orig_path, PATH)
+                self.assertEqual(HUNKS[i][1], hunk.orig_start_line_number)
                 self.assertEqualSignature(HUNKS[i][2], hunk.orig_committer)
                 self.assertEqual(HUNKS[i][3], hunk.boundary)
 
