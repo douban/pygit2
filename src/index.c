@@ -72,6 +72,21 @@ Index_dealloc(Index* self)
     PyObject_GC_Del(self);
 }
 
+PyObject *
+wrap_index(git_index *index, Repository *repo)
+{
+    Index *py_index;
+    py_index = PyObject_GC_New(Index, &IndexType);
+    if (py_index) {
+        Py_INCREF(repo);
+        py_index->repo = repo;
+        py_index->index = index;
+        PyObject_GC_Track(py_index);
+        Py_INCREF(py_index);
+    }
+    return (PyObject *)py_index;
+}
+
 int
 Index_traverse(Index *self, visitproc visit, void *arg)
 {

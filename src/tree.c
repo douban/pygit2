@@ -533,7 +533,6 @@ Tree_merge(Tree *self, PyObject *args, PyObject *kwds)
     git_merge_tree_opts opts = GIT_MERGE_TREE_OPTS_INIT;
     Index *py_merge_index;
     int err;
-
     if (!PyArg_ParseTuple(args, "O!O!", &TreeType, &py_others,
                                         &TreeType, &py_base))
         return NULL;
