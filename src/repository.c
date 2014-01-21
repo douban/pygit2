@@ -1110,7 +1110,7 @@ Repository_create_reference_direct(Repository *self,  PyObject *args,
     if (err < 0)
         return NULL;
 
-    err = git_reference_create(&c_reference, self->repo, c_name, &oid, force);
+    err = git_reference_create(&c_reference, self->repo, c_name, &oid, force, NULL, NULL);
     if (err < 0)
         return Error_set(err);
 
@@ -1144,7 +1144,7 @@ Repository_create_reference_symbolic(Repository *self,  PyObject *args,
         return NULL;
 
     err = git_reference_symbolic_create(&c_reference, self->repo, c_name,
-                                        c_target, force);
+                                        c_target, force, NULL, NULL);
     if (err < 0)
         return Error_set(err);
 
