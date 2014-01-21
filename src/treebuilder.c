@@ -106,6 +106,8 @@ TreeBuilder_get(TreeBuilder *self, PyObject *py_filename)
 {
     char *filename;
     const git_tree_entry *entry;
+    git_tree_entry *entry_dup;
+    int err = 0;
 
     filename = py_path_to_c_str(py_filename);
     if (filename == NULL)
@@ -116,12 +118,11 @@ TreeBuilder_get(TreeBuilder *self, PyObject *py_filename)
     if (entry == NULL)
         Py_RETURN_NONE;
 
-    entry = git_tree_entry_dup(entry);
-    if (entry == NULL) {
-        PyErr_SetNone(PyExc_MemoryError);
-        return NULL;
+    err = git_tree_entry_dup(&entry_dup, entry);
+    if (err < 0) {
+        return Error_set(err);
     }
-    return (PyObject*)wrap_tree_entry(entry);
+    return (PyObject*)wrap_tree_entry(entry_dup);
 }
 
 
