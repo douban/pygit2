@@ -244,9 +244,8 @@ Tree_getitem_by_index(Tree *self, PyObject *py_index)
     }
 
     err = git_tree_entry_dup(&entry_dup, entry);
-    if (err < 0) {
-        return Error_set(err);
-    }
+    if (err < 0)
+        return (TreeEntry*) Error_set(err);
 
     return wrap_tree_entry(entry_dup);
 }
@@ -651,9 +650,9 @@ TreeIter_iternext(TreeIter *self)
     self->i += 1;
 
     err = git_tree_entry_dup(&entry_dup, entry);
-    if (err < 0) {
-        return Error_set(err);
-    }
+    if (err < 0)
+        return (TreeEntry*) Error_set(err);
+
     return wrap_tree_entry(entry_dup);
 }
 
