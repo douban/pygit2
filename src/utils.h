@@ -108,6 +108,8 @@ to_bytes(const char * value)
 }
 
 char * py_str_to_c_str(PyObject *value, const char *encoding);
+int py_list_to_opts(PyObject *py_paths, git_diff_options *opts);
+int free_opts_pathspec(PyObject *py_paths, git_diff_options *opts);
 
 #define py_path_to_c_str(py_path) \
         py_str_to_c_str(py_path, Py_FileSystemDefaultEncoding)

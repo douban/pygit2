@@ -32,6 +32,7 @@
 #include "signature.h"
 #include "commit.h"
 #include "object.h"
+#include "pthread.h"
 
 extern PyTypeObject TreeType;
 
