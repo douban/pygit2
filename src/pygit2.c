@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2013 The pygit2 contributors
+ * Copyright 2010-2014 The pygit2 contributors
  *
  * This file is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2,
@@ -27,13 +27,23 @@
 
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
-#include <osdefs.h>
+
+/* Pypy does not provide this header */
+#ifndef PYPY_VERSION
+# include <osdefs.h>
+#endif
+
 #include <git2.h>
 #include "error.h"
 #include "types.h"
 #include "utils.h"
 #include "repository.h"
 #include "oid.h"
+
+/* FIXME: This is for pypy */
+#ifndef MAXPATHLEN
+# define MAXPATHLEN 1024
+#endif
 
 extern PyObject *GitError;
 
@@ -56,12 +66,15 @@ extern PyTypeObject IndexEntryType;
 extern PyTypeObject IndexIterType;
 extern PyTypeObject WalkerType;
 extern PyTypeObject ConfigType;
+extern PyTypeObject ConfigIterType;
 extern PyTypeObject ReferenceType;
 extern PyTypeObject RefLogIterType;
 extern PyTypeObject RefLogEntryType;
 extern PyTypeObject BranchType;
 extern PyTypeObject SignatureType;
 extern PyTypeObject RemoteType;
+extern PyTypeObject RefspecType;
+extern PyTypeObject TransferProgressType;
 extern PyTypeObject NoteType;
 extern PyTypeObject NoteIterType;
 extern PyTypeObject BlameType;
@@ -323,7 +336,7 @@ moduleinit(PyObject* m)
     /*
      * Log
      */
-    INIT_TYPE(WalkerType, NULL, PyType_GenericNew)
+    INIT_TYPE(WalkerType, NULL, NULL)
     ADD_TYPE(m, Walker);
     ADD_CONSTANT_INT(m, GIT_SORT_NONE)
     ADD_CONSTANT_INT(m, GIT_SORT_TOPOLOGICAL)
@@ -340,7 +353,7 @@ moduleinit(PyObject* m)
     /*
      * References
      */
-    INIT_TYPE(ReferenceType, NULL, PyType_GenericNew)
+    INIT_TYPE(ReferenceType, NULL, NULL)
     INIT_TYPE(RefLogEntryType, NULL, NULL)
     INIT_TYPE(RefLogIterType, NULL, NULL)
     INIT_TYPE(NoteType, NULL, NULL)
@@ -356,7 +369,7 @@ moduleinit(PyObject* m)
     /*
      * Branches
      */
-    INIT_TYPE(BranchType, &ReferenceType, PyType_GenericNew);
+    INIT_TYPE(BranchType, &ReferenceType, NULL);
     ADD_TYPE(m, Branch)
     ADD_CONSTANT_INT(m, GIT_BRANCH_LOCAL)
     ADD_CONSTANT_INT(m, GIT_BRANCH_REMOTE)
@@ -365,7 +378,7 @@ moduleinit(PyObject* m)
      * Index & Working copy
      */
     INIT_TYPE(IndexType, NULL, PyType_GenericNew)
-    INIT_TYPE(IndexEntryType, NULL, NULL)
+    INIT_TYPE(IndexEntryType, NULL, PyType_GenericNew)
     INIT_TYPE(IndexIterType, NULL, NULL)
     ADD_TYPE(m, Index)
     ADD_TYPE(m, IndexEntry)
@@ -436,11 +449,20 @@ moduleinit(PyObject* m)
 
     /* Config */
     INIT_TYPE(ConfigType, NULL, PyType_GenericNew)
+    INIT_TYPE(ConfigIterType, NULL, NULL)
     ADD_TYPE(m, Config)
+    ADD_TYPE(m, ConfigIter)
 
     /* Remotes */
     INIT_TYPE(RemoteType, NULL, NULL)
+    INIT_TYPE(RefspecType, NULL, NULL)
+    INIT_TYPE(TransferProgressType, NULL, NULL)
     ADD_TYPE(m, Remote)
+    ADD_TYPE(m, Refspec)
+    ADD_TYPE(m, TransferProgress)
+    /* Direction for the refspec */
+    ADD_CONSTANT_INT(m, GIT_DIRECTION_FETCH)
+    ADD_CONSTANT_INT(m, GIT_DIRECTION_PUSH)
 
     /* Blame */
     INIT_TYPE(BlameType, NULL, NULL)

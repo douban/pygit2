@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 #
-# Copyright 2010-2013 The pygit2 contributors
+# Copyright 2010-2014 The pygit2 contributors
 #
 # This file is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2,
@@ -50,7 +50,7 @@ class BlobTest(utils.RepoTestCase):
     def test_read_blob(self):
         blob = self.repo[BLOB_SHA]
         self.assertEqual(blob.hex, BLOB_SHA)
-        sha = blob.oid.hex
+        sha = blob.id.hex
         self.assertEqual(sha, BLOB_SHA)
         self.assertTrue(isinstance(blob, pygit2.Blob))
         self.assertFalse(blob.is_binary)
@@ -66,7 +66,7 @@ class BlobTest(utils.RepoTestCase):
         self.assertTrue(isinstance(blob, pygit2.Blob))
         self.assertEqual(pygit2.GIT_OBJ_BLOB, blob.type)
 
-        self.assertEqual(blob_oid, blob.oid)
+        self.assertEqual(blob_oid, blob.id)
         self.assertEqual(
             utils.gen_blob_sha1(BLOB_NEW_CONTENT),
             blob_oid.hex)
@@ -83,7 +83,7 @@ class BlobTest(utils.RepoTestCase):
         self.assertTrue(isinstance(blob, pygit2.Blob))
         self.assertEqual(pygit2.GIT_OBJ_BLOB, blob.type)
 
-        self.assertEqual(blob_oid, blob.oid)
+        self.assertEqual(blob_oid, blob.id)
         self.assertEqual(
             utils.gen_blob_sha1(BLOB_FILE_CONTENT),
             blob_oid.hex)
@@ -104,6 +104,17 @@ class BlobTest(utils.RepoTestCase):
 
         self.assertTrue(isinstance(blob, pygit2.Blob))
         self.assertEqual(pygit2.GIT_OBJ_BLOB, blob.type)
+
+    def test_diff_blob(self):
+        blob = self.repo[BLOB_SHA]
+        old_blob = self.repo['3b18e512dba79e4c8300dd08aeb37f8e728b8dad']
+        patch = blob.diff(old_blob, old_as_path="hello.txt")
+        self.assertEqual(len(patch.hunks), 1)
+
+    def test_diff_blob_to_buffer(self):
+        blob = self.repo[BLOB_SHA]
+        patch = blob.diff_to_buffer("hello world")
+        self.assertEqual(len(patch.hunks), 1)
 
 if __name__ == '__main__':
     unittest.main()

@@ -8,7 +8,7 @@ Index read::
 
     >>> index = repo.index
     >>> index.read()
-    >>> oid = index['path/to/file'].oid    # from path to object id
+    >>> oid = index['path/to/file'].id    # from path to object id
     >>> blob = repo[oid]                   # from object id to object
 
 Iterate over all entries of the index::
@@ -22,6 +22,9 @@ Index write::
     >>> del index['path/to/file']          # git rm
     >>> index.write()                      # don't forget to save the changes
 
+Custom entries::
+   >>> entry = pygit2.IndexEntry('README.md', blob_id, blob_filemode)
+   >>> repo.index.add(entry)
 
 The Index type
 ====================

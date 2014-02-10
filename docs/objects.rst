@@ -18,7 +18,7 @@ In the previous chapter we learnt about Object IDs. With an oid we can ask the
 repository to get the associated object. To do that the ``Repository`` class
 implementes a subset of the mapping interface.
 
-.. method:: Repository.get(oid, default=None)
+.. automethod:: pygit2.Repository.get
 
    Return the Git object for the given *oid*, returns the *default* value if
    there's no object in the repository with that oid. The oid can be an Oid
@@ -32,13 +32,13 @@ implementes a subset of the mapping interface.
      >>> obj
      <_pygit2.Commit object at 0x7ff27a6b60f0>
 
-.. method:: Repository[oid]
+.. method:: Repository.__getitem__(oid)
 
    Return the Git object for the given oid, raise ``KeyError`` if there's no
    object in the repository with that oid. The oid can be an Oid object, or
    an hexadecimal string.
 
-.. method:: oid in Repository
+.. method:: Repository.__contains__(oid)
 
    Returns True if there is an object in the Repository with that oid, False
    if there is not.  The oid can be an Oid object, or an hexadecimal string.
@@ -78,8 +78,7 @@ New objects are created using an specific API we will see later.
 
 This is the common interface for all Git objects:
 
-.. autoattribute:: pygit2.Object.oid
-.. autoattribute:: pygit2.Object.hex
+.. autoattribute:: pygit2.Object.id
 .. autoattribute:: pygit2.Object.type
 .. automethod:: pygit2.Object.read_raw
 
@@ -110,6 +109,9 @@ This is their API:
      130
 
 .. autoattribute:: pygit2.Blob.is_binary
+
+.. automethod:: pygit2.Blob.diff
+.. automethod:: pygit2.Blob.diff_to_buffer
 
 
 Creating blobs
@@ -145,20 +147,20 @@ directory in a file system. Each entry points to another tree or a blob.  A
 tree can be iterated, and partially implements the sequence and mapping
 interfaces.
 
-.. method:: Tree[name]
+.. method:: Tree.__getitem__(name)
 
    Return the TreeEntry object for the given *name*. Raise ``KeyError`` if
    there is not a tree entry with that name.
 
-.. method:: name in Tree
+.. method:: Tree.__contains__(name)
 
    Return True if there is a tree entry with the given name, False otherwise.
 
-.. method:: len(Tree)
+.. method:: Tree.__len__()
 
    Return the number of entries in the tree.
 
-.. method:: iter(Tree)
+.. method:: Tree.__iter__()
 
    Return an iterator over the entries of the tree.
 
@@ -170,9 +172,13 @@ Tree entries
 ------------
 
 .. autoattribute:: pygit2.TreeEntry.name
-.. autoattribute:: pygit2.TreeEntry.oid
+.. autoattribute:: pygit2.TreeEntry.id
 .. autoattribute:: pygit2.TreeEntry.hex
 .. autoattribute:: pygit2.TreeEntry.filemode
+
+.. method:: TreeEntry.__cmp__(TreeEntry)
+
+   Rich comparison between tree entries.
 
 Example::
 
@@ -181,7 +187,7 @@ Example::
     6
 
     >>> for entry in tree:               # Iteration
-    ...     print(entry.hex, entry.name)
+    ...     print(entry.id, entry.name)
     ...
     7151ca7cd3e59f3eab19c485cfbf3cb30928d7fa .gitignore
     c36f4cf1e38ec1bb9d9ad146ed572b89ecfc9f18 COPYING
@@ -194,7 +200,7 @@ Example::
     >>> entry
     <pygit2.TreeEntry object at 0xcc10f0>
 
-    >>> blob = repo[entry.oid]           # Get the object the entry points to
+    >>> blob = repo[entry.id]           # Get the object the entry points to
     >>> blob
     <pygit2.Blob object at 0xcc12d0>
 
@@ -221,7 +227,9 @@ committer and others.
 .. autoattribute:: pygit2.Commit.message_encoding
 .. autoattribute:: pygit2.Commit.raw_message
 .. autoattribute:: pygit2.Commit.tree
+.. autoattribute:: pygit2.Commit.tree_id
 .. autoattribute:: pygit2.Commit.parents
+.. autoattribute:: pygit2.Commit.parent_ids
 .. autoattribute:: pygit2.Commit.commit_time
 .. autoattribute:: pygit2.Commit.commit_time_offset
 

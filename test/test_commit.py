@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 #
-# Copyright 2010-2013 The pygit2 contributors
+# Copyright 2010-2014 The pygit2 contributors
 #
 # This file is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2,
@@ -31,9 +31,15 @@ from __future__ import absolute_import
 from __future__ import unicode_literals
 import unittest
 
-from pygit2 import GIT_OBJ_COMMIT, Signature
+from pygit2 import GIT_OBJ_COMMIT, Signature, Oid
 from . import utils
 
+# pypy raises TypeError on writing to read-only, so we need to check
+# and change the test accordingly
+try:
+    import __pypy__
+except ImportError:
+    __pypy__ = None
 
 COMMIT_SHA = '5fe808e8953c12735680c257f56600cb0de44b10'
 
@@ -42,11 +48,11 @@ class CommitTest(utils.BareRepoTestCase):
 
     def test_read_commit(self):
         commit = self.repo[COMMIT_SHA]
-        self.assertEqual(COMMIT_SHA, commit.hex)
+        self.assertEqual(COMMIT_SHA, str(commit.id))
         parents = commit.parents
         self.assertEqual(1, len(parents))
         self.assertEqual('c2792cfa289ae6321ecf2cd5806c2194b0fd070c',
-                         parents[0].hex)
+                         str(parents[0].id))
         self.assertEqual(None, commit.message_encoding)
         self.assertEqual(('Second test data commit.\n\n'
                           'This commit has some additional text.\n'),
@@ -62,7 +68,7 @@ class CommitTest(utils.BareRepoTestCase):
             Signature('Dave Borowitz', 'dborowitz@google.com', 1288477363,
                       -420))
         self.assertEqual(
-            '967fce8df97cc71722d3c2a5930ef3e6f1d27b12', commit.tree.hex)
+            '967fce8df97cc71722d3c2a5930ef3e6f1d27b12', str(commit.tree.id))
 
     def test_new_commit(self):
         repo = self.repo
@@ -92,8 +98,10 @@ class CommitTest(utils.BareRepoTestCase):
         self.assertEqualSignature(committer, commit.committer)
         self.assertEqualSignature(author, commit.author)
         self.assertEqual(tree, commit.tree.hex)
+        self.assertEqual(Oid(hex=tree), commit.tree_id)
         self.assertEqual(1, len(commit.parents))
         self.assertEqual(COMMIT_SHA, commit.parents[0].hex)
+        self.assertEqual(Oid(hex=COMMIT_SHA), commit.parent_ids[0])
 
     def test_new_commit_encoding(self):
         repo = self.repo
@@ -118,8 +126,10 @@ class CommitTest(utils.BareRepoTestCase):
         self.assertEqualSignature(committer, commit.committer)
         self.assertEqualSignature(author, commit.author)
         self.assertEqual(tree, commit.tree.hex)
+        self.assertEqual(Oid(hex=tree), commit.tree_id)
         self.assertEqual(1, len(commit.parents))
         self.assertEqual(COMMIT_SHA, commit.parents[0].hex)
+        self.assertEqual(Oid(hex=COMMIT_SHA), commit.parent_ids[0])
 
     def test_modify_commit(self):
         message = 'New commit.\n\nMessage.\n'
@@ -127,12 +137,13 @@ class CommitTest(utils.BareRepoTestCase):
         author = ('Jane Doe', 'jdoe2@example.com', 12345)
 
         commit = self.repo[COMMIT_SHA]
-        self.assertRaises(AttributeError, setattr, commit, 'message', message)
-        self.assertRaises(AttributeError, setattr, commit, 'committer',
-                          committer)
-        self.assertRaises(AttributeError, setattr, commit, 'author', author)
-        self.assertRaises(AttributeError, setattr, commit, 'tree', None)
-        self.assertRaises(AttributeError, setattr, commit, 'parents', None)
+
+        error_type = AttributeError if not __pypy__ else TypeError
+        self.assertRaises(error_type, setattr, commit, 'message', message)
+        self.assertRaises(error_type, setattr, commit, 'committer', committer)
+        self.assertRaises(error_type, setattr, commit, 'author', author)
+        self.assertRaises(error_type, setattr, commit, 'tree', None)
+        self.assertRaises(error_type, setattr, commit, 'parents', None)
 
     def test_is_changed(self):
         commit = self.repo['c2792cfa289ae6321ecf2cd5806c2194b0fd070c']

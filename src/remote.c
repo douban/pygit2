@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2013 The pygit2 contributors
+ * Copyright 2010-2014 The pygit2 contributors
  *
  * This file is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2,
@@ -29,43 +29,190 @@
 #include <Python.h>
 #include <structmember.h>
 #include "error.h"
-#include "utils.h"
 #include "types.h"
+#include "utils.h"
+#include "oid.h"
+#include "refspec.h"
 #include "remote.h"
 
 
 extern PyObject *GitError;
 extern PyTypeObject RepositoryType;
+extern PyTypeObject TransferProgressType;
 
 PyObject *
-Remote_init(Remote *self, PyObject *args, PyObject *kwds)
+wrap_transfer_progress(const git_transfer_progress *stats)
 {
-    Repository* py_repo = NULL;
-    char *name = NULL;
-    int err;
+    TransferProgress *py_stats;
 
-    if (!PyArg_ParseTuple(args, "O!s", &RepositoryType, &py_repo, &name))
+    py_stats = PyObject_New(TransferProgress, &TransferProgressType);
+    if (!py_stats)
         return NULL;
 
-    self->repo = py_repo;
-    Py_INCREF(self->repo);
-    err = git_remote_load(&self->remote, py_repo->repo, name);
+    py_stats->total_objects = stats->total_objects;
+    py_stats->indexed_objects = stats->indexed_objects;
+    py_stats->received_objects = stats->received_objects;
+    py_stats->local_objects = stats->local_objects;
+    py_stats->total_deltas = stats->total_deltas;
+    py_stats->indexed_deltas = stats->indexed_deltas;
+    py_stats->received_bytes = stats->received_bytes;
 
-    if (err < 0)
-        return Error_set(err);
-
-    return (PyObject*) self;
+    return (PyObject *) py_stats;
 }
 
+void
+TransferProgress_dealloc(TransferProgress *self)
+{
+    PyObject_Del(self);
+}
+
+PyMemberDef TransferProgress_members[] = {
+    RMEMBER(TransferProgress, total_objects, T_UINT, "Total number objects to download"),
+    RMEMBER(TransferProgress, indexed_objects, T_UINT, "Objects which have been indexed"),
+    RMEMBER(TransferProgress, received_objects, T_UINT, "Objects which have been received up to now"),
+    RMEMBER(TransferProgress, local_objects, T_UINT, "Local objects which were used to fix the thin pack"),
+    RMEMBER(TransferProgress, total_deltas, T_UINT, "Total number of deltas in the pack"),
+    RMEMBER(TransferProgress, indexed_deltas, T_UINT, "Deltas which have been indexed"),
+    /* FIXME: technically this is unsigned, but there's no value for size_t here. */
+    RMEMBER(TransferProgress, received_bytes, T_PYSSIZET, "Number of bytes received up to now"),
+    {NULL},
+};
+
+PyDoc_STRVAR(TransferProgress__doc__, "Progress downloading and indexing data during a fetch");
+
+PyTypeObject TransferProgressType = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    "_pygit2.TransferProgress",                /* tp_name           */
+    sizeof(TransferProgress),                            /* tp_basicsize      */
+    0,                                         /* tp_itemsize       */
+    (destructor)TransferProgress_dealloc,      /* tp_dealloc        */
+    0,                                         /* tp_print          */
+    0,                                         /* tp_getattr        */
+    0,                                         /* tp_setattr        */
+    0,                                         /* tp_compare        */
+    0,                                         /* tp_repr           */
+    0,                                         /* tp_as_number      */
+    0,                                         /* tp_as_sequence    */
+    0,                                         /* tp_as_mapping     */
+    0,                                         /* tp_hash           */
+    0,                                         /* tp_call           */
+    0,                                         /* tp_str            */
+    0,                                         /* tp_getattro       */
+    0,                                         /* tp_setattro       */
+    0,                                         /* tp_as_buffer      */
+    Py_TPFLAGS_DEFAULT,                        /* tp_flags          */
+    TransferProgress__doc__,                            /* tp_doc            */
+    0,                                         /* tp_traverse       */
+    0,                                         /* tp_clear          */
+    0,                                         /* tp_richcompare    */
+    0,                                         /* tp_weaklistoffset */
+    0,                                         /* tp_iter           */
+    0,                                         /* tp_iternext       */
+    0,                                         /* tp_methods        */
+    TransferProgress_members,                  /* tp_members        */
+    0,                                         /* tp_getset         */
+    0,                                         /* tp_base           */
+    0,                                         /* tp_dict           */
+    0,                                         /* tp_descr_get      */
+    0,                                         /* tp_descr_set      */
+    0,                                         /* tp_dictoffset     */
+    0,                                         /* tp_init           */
+    0,                                         /* tp_alloc          */
+    0,                                         /* tp_new            */
+};
+
+static int
+progress_cb(const char *str, int len, void *data)
+{
+    Remote *remote = (Remote *) data;
+    PyObject *arglist, *ret;
+
+    if (remote->progress == NULL)
+        return 0;
+
+    if (!PyCallable_Check(remote->progress)) {
+        PyErr_SetString(PyExc_TypeError, "progress callback is not callable");
+        return -1;
+    }
+
+    arglist = Py_BuildValue("(s#)", str, len);
+    ret = PyObject_CallObject(remote->progress, arglist);
+    Py_DECREF(arglist);
+
+    if (!ret)
+        return -1;
+
+    Py_DECREF(ret);
+
+    return 0;
+}
+
+static int
+transfer_progress_cb(const git_transfer_progress *stats, void *data)
+{
+    Remote *remote = (Remote *) data;
+    PyObject *py_stats, *ret;
+
+    if (remote->transfer_progress == NULL)
+        return 0;
+
+    if (!PyCallable_Check(remote->transfer_progress)) {
+        PyErr_SetString(PyExc_TypeError, "transfer progress callback is not callable");
+        return -1;
+    }
+
+    py_stats = wrap_transfer_progress(stats);
+    if (!py_stats)
+        return -1;
+
+    ret = PyObject_CallFunctionObjArgs(remote->transfer_progress, py_stats, NULL);
+    if (!ret)
+        return -1;
+
+    Py_DECREF(ret);
+
+    return 0;
+}
+
+static int
+update_tips_cb(const char *refname, const git_oid *a, const git_oid *b, void *data)
+{
+    Remote *remote = (Remote *) data;
+    PyObject *ret;
+    PyObject *old, *new;
+
+    if (remote->update_tips == NULL)
+        return 0;
+
+    if (!PyCallable_Check(remote->update_tips)) {
+        PyErr_SetString(PyExc_TypeError, "update tips callback is not callable");
+        return -1;
+    }
+
+    old = git_oid_to_python(a);
+    new = git_oid_to_python(b);
+
+    ret = PyObject_CallFunction(remote->update_tips, "(s,O,O)", refname, old ,new);
+
+    Py_DECREF(old);
+    Py_DECREF(new);
+
+    if (!ret)
+        return -1;
+
+    Py_DECREF(ret);
+
+    return 0;
+}
 
 static void
 Remote_dealloc(Remote *self)
 {
     Py_CLEAR(self->repo);
+    Py_CLEAR(self->progress);
     git_remote_free(self->remote);
     PyObject_Del(self);
 }
-
 
 PyDoc_STRVAR(Remote_name__doc__, "Name of the remote refspec");
 
@@ -79,12 +226,13 @@ int
 Remote_name__set__(Remote *self, PyObject* py_name)
 {
     int err;
-    char* name;
+    const char* name;
+    PyObject *tname;
 
-    name = py_str_to_c_str(py_name, NULL);
+    name = py_str_borrow_c_str(&tname, py_name, NULL);
     if (name != NULL) {
         err = git_remote_rename(self->remote, name, NULL, NULL);
-        free(name);
+	Py_DECREF(tname);
 
         if (err == GIT_OK)
             return 0;
@@ -113,12 +261,55 @@ get_pylist_from_git_strarray(git_strarray *strarray)
     return new_list;
 }
 
+int
+get_strarraygit_from_pylist(git_strarray *array, PyObject *pylist)
+{
+    Py_ssize_t index, n;
+    PyObject *item;
+    void *ptr;
 
-PyDoc_STRVAR(Remote_get_fetch_refspecs__doc__, "Fetch refspecs");
+    if (!PyList_Check(pylist)) {
+        PyErr_SetString(PyExc_TypeError, "Value must be a list");
+        return -1;
+    }
 
+    n = PyList_Size(pylist);
+
+    /* allocate new git_strarray */
+    ptr = calloc(n, sizeof(char *));
+    if (!ptr) {
+        PyErr_SetNone(PyExc_MemoryError);
+        return -1;
+    }
+
+    array->strings = ptr;
+    array->count = n;
+
+    for (index = 0; index < n; index++) {
+        item = PyList_GetItem(pylist, index);
+        char *str = py_str_to_c_str(item, NULL);
+        if (!str)
+            goto on_error;
+
+        array->strings[index] = str;
+    }
+
+    return 0;
+
+on_error:
+    n = index;
+    for (index = 0; index < n; index++) {
+        free(array->strings[index]);
+    }
+    free(array->strings);
+
+    return -1;
+}
+
+PyDoc_STRVAR(Remote_fetch_refspecs__doc__, "Fetch refspecs");
 
 PyObject *
-Remote_get_fetch_refspecs(Remote *self)
+Remote_fetch_refspecs__get__(Remote *self)
 {
     int err;
     git_strarray refspecs;
@@ -134,12 +325,30 @@ Remote_get_fetch_refspecs(Remote *self)
     return new_list;
 }
 
+int
+Remote_fetch_refspecs__set__(Remote *self, PyObject *py_list)
+{
+    int err;
+    git_strarray fetch_refspecs;
 
-PyDoc_STRVAR(Remote_get_push_refspecs__doc__, "Push refspecs");
+    if (get_strarraygit_from_pylist(&fetch_refspecs, py_list) < 0)
+        return -1;
 
+    err = git_remote_set_fetch_refspecs(self->remote, &fetch_refspecs);
+    git_strarray_free(&fetch_refspecs);
+
+    if (err < 0) {
+        Error_set(err);
+        return -1;
+    }
+
+    return 0;
+}
+
+PyDoc_STRVAR(Remote_push_refspecs__doc__, "Push refspecs");
 
 PyObject *
-Remote_get_push_refspecs(Remote *self)
+Remote_push_refspecs__get__(Remote *self)
 {
     int err;
     git_strarray refspecs;
@@ -155,90 +364,24 @@ Remote_get_push_refspecs(Remote *self)
     return new_list;
 }
 
-
 int
-get_strarraygit_from_pylist(git_strarray *array, PyObject *pylist)
-{
-    long index, n;
-    PyObject *item;
-    void *ptr;
-
-    n = PyObject_Length(pylist);
-    if (n < 0)
-        return -1;
-
-    /* allocate new git_strarray */
-    ptr = calloc(n, sizeof(char *));
-    if (!ptr) {
-        PyErr_SetNone(PyExc_MemoryError);
-        return -1;
-    }
-
-    array->strings = ptr;
-    array->count = n;
-
-    for (index = 0; index < n; index++) {
-        item = PyList_GetItem(pylist, index);
-        array->strings[index] = py_str_to_c_str(item, NULL);
-    }
-
-    return GIT_OK;
-}
-
-
-PyDoc_STRVAR(Remote_set_fetch_refspecs__doc__,
-    "set_fetch_refspecs([str])\n"
-    "\n");
-
-
-PyObject *
-Remote_set_fetch_refspecs(Remote *self, PyObject *args)
+Remote_push_refspecs__set__(Remote *self, PyObject *py_list)
 {
     int err;
-    PyObject *pyrefspecs;
-    git_strarray fetch_refspecs;
-
-    if (! PyArg_Parse(args, "O", &pyrefspecs))
-        return NULL;
-
-    if (get_strarraygit_from_pylist(&fetch_refspecs, pyrefspecs) != GIT_OK)
-        return NULL;
-
-    err = git_remote_set_fetch_refspecs(self->remote, &fetch_refspecs);
-    git_strarray_free(&fetch_refspecs);
-
-    if (err != GIT_OK)
-        return Error_set(err);
-
-    Py_RETURN_NONE;
-}
-
-
-PyDoc_STRVAR(Remote_set_push_refspecs__doc__,
-    "set_push_refspecs([str])\n"
-    "\n");
-
-
-PyObject *
-Remote_set_push_refspecs(Remote *self, PyObject *args)
-{
-    int err;
-    PyObject *pyrefspecs;
     git_strarray push_refspecs;
 
-    if (! PyArg_Parse(args, "O", &pyrefspecs))
-        return NULL;
-
-    if (get_strarraygit_from_pylist(&push_refspecs, pyrefspecs) != 0)
-        return NULL;
+    if (get_strarraygit_from_pylist(&push_refspecs, py_list) != 0)
+        return -1;
 
     err = git_remote_set_push_refspecs(self->remote, &push_refspecs);
     git_strarray_free(&push_refspecs);
 
-    if (err != GIT_OK)
-        return Error_set(err);
+    if (err < 0) {
+        Error_set(err);
+        return -1;
+    }
 
-    Py_RETURN_NONE;
+    return 0;
 }
 
 
@@ -248,7 +391,13 @@ PyDoc_STRVAR(Remote_url__doc__, "Url of the remote");
 PyObject *
 Remote_url__get__(Remote *self)
 {
-    return to_unicode(git_remote_url(self->remote), NULL, NULL);
+    const char *url;
+
+    url = git_remote_url(self->remote);
+    if (!url)
+        Py_RETURN_NONE;
+
+    return to_unicode(url, NULL, NULL);
 }
 
 
@@ -256,12 +405,50 @@ int
 Remote_url__set__(Remote *self, PyObject* py_url)
 {
     int err;
-    char* url = NULL;
+    const char* url = NULL;
+    PyObject *turl;
 
-    url = py_str_to_c_str(py_url, NULL);
+    url = py_str_borrow_c_str(&turl, py_url, NULL);
     if (url != NULL) {
         err = git_remote_set_url(self->remote, url);
-        free(url);
+	Py_DECREF(turl);
+
+        if (err == GIT_OK)
+            return 0;
+
+        Error_set(err);
+    }
+
+    return -1;
+}
+
+PyDoc_STRVAR(Remote_push_url__doc__, "Push url of the remote");
+
+
+PyObject *
+Remote_push_url__get__(Remote *self)
+{
+    const char *url;
+
+    url = git_remote_pushurl(self->remote);
+    if (!url)
+        Py_RETURN_NONE;
+
+    return to_unicode(url, NULL, NULL);
+}
+
+
+int
+Remote_push_url__set__(Remote *self, PyObject* py_url)
+{
+    int err;
+    const char* url = NULL;
+    PyObject *turl;
+
+    url = py_str_borrow_c_str(&turl, py_url, NULL);
+    if (url != NULL) {
+        err = git_remote_set_pushurl(self->remote, url);
+	Py_DECREF(turl);
 
         if (err == GIT_OK)
             return 0;
@@ -369,8 +556,7 @@ Remote_get_refspec(Remote *self, PyObject *value)
         return NULL;
     }
 
-    return Py_BuildValue("(ss)", git_refspec_src(refspec),
-                                 git_refspec_dst(refspec));
+    return (PyObject*) wrap_refspec(self, refspec);
 }
 
 
@@ -388,23 +574,22 @@ Remote_fetch(Remote *self, PyObject *args)
     const git_transfer_progress *stats;
     int err;
 
-    err = git_remote_connect(self->remote, GIT_DIRECTION_FETCH);
-    if (err == GIT_OK) {
-        err = git_remote_download(self->remote);
-        if (err == GIT_OK) {
-            stats = git_remote_stats(self->remote);
-            py_stats = Py_BuildValue("{s:I,s:I,s:n}",
-                "indexed_objects", stats->indexed_objects,
-                "received_objects", stats->received_objects,
-                "received_bytes", stats->received_bytes);
-
-            err = git_remote_update_tips(self->remote);
-        }
-        git_remote_disconnect(self->remote);
-    }
-
+    PyErr_Clear();
+    err = git_remote_fetch(self->remote);
+    /*
+     * XXX: We should be checking for GIT_EUSER, but on v0.20, this does not
+     * make it all the way to us for update_tips
+     */
+    if (err < 0 && PyErr_Occurred())
+        return NULL;
     if (err < 0)
         return Error_set(err);
+
+    stats = git_remote_stats(self->remote);
+    py_stats = Py_BuildValue("{s:I,s:I,s:n}",
+        "indexed_objects", stats->indexed_objects,
+        "received_objects", stats->received_objects,
+        "received_bytes", stats->received_bytes);
 
     return (PyObject*) py_stats;
 }
@@ -494,24 +679,78 @@ error:
 }
 
 
+PyDoc_STRVAR(Remote_add_push__doc__,
+    "add_push(refspec)\n"
+    "\n"
+    "Add a push refspec to the remote.");
+
+PyObject *
+Remote_add_push(Remote *self, PyObject *args)
+{
+    git_remote *remote;
+    char *refspec = NULL;
+    int err = 0;
+
+    if (!PyArg_ParseTuple(args, "s", &refspec))
+        return NULL;
+
+    remote = self->remote;
+    err = git_remote_add_push(remote, refspec);
+    if (err < 0)
+        return Error_set(err);
+
+    Py_RETURN_NONE;
+}
+
+
+PyDoc_STRVAR(Remote_add_fetch__doc__,
+    "add_fetch(refspec)\n"
+    "\n"
+    "Add a fetch refspec to the remote.");
+
+PyObject *
+Remote_add_fetch(Remote *self, PyObject *args)
+{
+    git_remote *remote;
+    char *refspec = NULL;
+    int err = 0;
+
+    if (!PyArg_ParseTuple(args, "s", &refspec))
+        return NULL;
+
+    remote = self->remote;
+    err = git_remote_add_fetch(remote, refspec);
+    if (err < 0)
+        return Error_set(err);
+
+    Py_RETURN_NONE;
+}
+
 PyMethodDef Remote_methods[] = {
     METHOD(Remote, fetch, METH_NOARGS),
     METHOD(Remote, save, METH_NOARGS),
     METHOD(Remote, get_refspec, METH_O),
     METHOD(Remote, push, METH_VARARGS),
-    METHOD(Remote, get_fetch_refspecs, METH_NOARGS),
-    METHOD(Remote, set_fetch_refspecs, METH_O),
-    METHOD(Remote, get_push_refspecs, METH_NOARGS),
-    METHOD(Remote, set_push_refspecs, METH_O),
+    METHOD(Remote, add_push, METH_VARARGS),
+    METHOD(Remote, add_fetch, METH_VARARGS),
     {NULL}
 };
 
 PyGetSetDef Remote_getseters[] = {
     GETSET(Remote, name),
     GETSET(Remote, url),
+    GETSET(Remote, push_url),
     GETTER(Remote, refspec_count),
-    GETSET(Remote, fetchspec), /* FIXME: compatibility */
+    GETSET(Remote, fetch_refspecs),
+    GETSET(Remote, push_refspecs),
     {NULL}
+};
+
+PyMemberDef Remote_members[] = {
+    MEMBER(Remote, progress, T_OBJECT_EX, "Progress output callback"),
+    MEMBER(Remote, transfer_progress, T_OBJECT_EX, "Transfer progress callback"),
+    MEMBER(Remote, update_tips, T_OBJECT_EX, "update tips callback"),
+    {NULL},
 };
 
 PyDoc_STRVAR(Remote__doc__, "Remote object.");
@@ -545,14 +784,39 @@ PyTypeObject RemoteType = {
     0,                                         /* tp_iter           */
     0,                                         /* tp_iternext       */
     Remote_methods,                            /* tp_methods        */
-    0,                                         /* tp_members        */
+    Remote_members,                            /* tp_members        */
     Remote_getseters,                          /* tp_getset         */
     0,                                         /* tp_base           */
     0,                                         /* tp_dict           */
     0,                                         /* tp_descr_get      */
     0,                                         /* tp_descr_set      */
     0,                                         /* tp_dictoffset     */
-    (initproc)Remote_init,                     /* tp_init           */
+    0,                                         /* tp_init           */
     0,                                         /* tp_alloc          */
     0,                                         /* tp_new            */
 };
+
+PyObject *
+wrap_remote(git_remote *c_remote, Repository *repo)
+{
+    Remote *py_remote = NULL;
+    git_remote_callbacks callbacks = GIT_REMOTE_CALLBACKS_INIT;
+
+    py_remote = PyObject_New(Remote, &RemoteType);
+    if (py_remote) {
+        Py_INCREF(repo);
+        py_remote->repo = repo;
+        py_remote->remote = c_remote;
+        py_remote->progress = NULL;
+        py_remote->transfer_progress = NULL;
+        py_remote->update_tips = NULL;
+
+        callbacks.progress = progress_cb;
+        callbacks.transfer_progress = transfer_progress_cb;
+        callbacks.update_tips = update_tips_cb;
+        callbacks.payload = py_remote;
+        git_remote_set_callbacks(c_remote, &callbacks);
+    }
+
+    return (PyObject *)py_remote;
+}

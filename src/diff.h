@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2013 The pygit2 contributors
+ * Copyright 2010-2014 The pygit2 contributors
  *
  * This file is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2,
@@ -42,5 +42,6 @@ PyObject* Diff_changes(Diff *self);
 PyObject* Diff_patch(Diff *self);
 
 PyObject* wrap_diff(git_diff *diff, Repository *repo);
+PyObject* wrap_patch(git_patch *patch);
 
 #endif

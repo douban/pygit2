@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 #
-# Copyright 2010-2013 The pygit2 contributors
+# Copyright 2010-2014 The pygit2 contributors
 #
 # This file is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2,
@@ -213,7 +213,7 @@ class ReferencesTest(utils.RepoTestCase):
     def test_get_object(self):
         repo = self.repo
         ref = repo.lookup_reference('refs/heads/master')
-        self.assertEqual(repo[ref.target].oid, ref.get_object().oid)
+        self.assertEqual(repo[ref.target].id, ref.get_object().id)
 
 
 if __name__ == '__main__':

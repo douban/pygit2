@@ -25,17 +25,14 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef INCLUDE_pygit2_treebuilder_h
-#define INCLUDE_pygit2_treebuilder_h
+#ifndef INCLUDE_pygit2_refspec_h
+#define INCLUDE_pygit2_refspec_h
 
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <git2.h>
-#include "types.h"
+#include <git2/refspec.h>
 
-PyObject* TreeBuilder_insert(TreeBuilder *self, PyObject *args);
-PyObject* TreeBuilder_write(TreeBuilder *self);
-PyObject* TreeBuilder_remove(TreeBuilder *self, PyObject *py_filename);
-PyObject* TreeBuilder_clear(TreeBuilder *self);
+Refspec* wrap_refspec(const Remote *owner, const git_refspec *refspec);
 
 #endif
