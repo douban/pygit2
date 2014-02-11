@@ -210,8 +210,10 @@ class EmptyRepositoryTest(utils.EmptyRepoTestCase):
         self.i = 0
         self.tips = [('refs/remotes/origin/master', Oid(hex='0'*40),
                       Oid(hex='784855caf26449a1914d2cf62d12b9374d76ae78')),
+                     ('refs/remotes/origin/test', Oid(hex='0'*40),
+                      Oid(hex='784855caf26449a1914d2cf62d12b9374d76ae78')),
                      ('refs/tags/root', Oid(hex='0'*40),
-                      Oid(hex='3d2962987c695a29f1f80b6c3aa4ec046ef44369'))]
+                     Oid(hex='3d2962987c695a29f1f80b6c3aa4ec046ef44369'))]
 
         def ut_cb(name, old, new):
             self.assertEqual(self.tips[self.i], (name, old, new))
