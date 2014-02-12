@@ -81,6 +81,7 @@ This is the common interface for all Git objects:
 .. autoattribute:: pygit2.Object.id
 .. autoattribute:: pygit2.Object.type
 .. automethod:: pygit2.Object.read_raw
+.. automethod:: pygit2.Object.peel
 
 
 Blobs
@@ -213,6 +214,7 @@ Creating trees
 .. automethod:: pygit2.TreeBuilder.remove
 .. automethod:: pygit2.TreeBuilder.clear
 .. automethod:: pygit2.TreeBuilder.write
+.. automethod:: pygit2.TreeBuilder.get
 
 
 Commits
