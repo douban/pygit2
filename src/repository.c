@@ -39,6 +39,7 @@
 #include "branch.h"
 #include "blame.h"
 #include "mergeresult.h"
+#include "index.h"
 #include <git2/odb_backend.h>
 
 extern PyObject *GitError;
@@ -622,6 +623,27 @@ Repository_merge(Repository *self, PyObject *py_oid)
     return py_merge_result;
 }
 
+PyDoc_STRVAR(Repository_merge_commits__doc__,
+  "merge two git commit, return an index");
+
+PyObject *
+Repository_merge_commits(Repository *self, PyObject *args)
+{
+    Commit *our_commit, *their_commit;
+    git_merge_tree_opts opts = GIT_MERGE_TREE_OPTS_INIT;
+    git_index *merge_index;
+    int err;
+
+    if (!PyArg_ParseTuple(args, "O!O!", &CommitType, &our_commit,
+                                        &CommitType, &their_commit))
+        return NULL;
+    err = git_merge_commits(&merge_index, self->repo, our_commit->commit, their_commit->commit, &opts);
+    if (err < 0)
+        return Error_set(err);
+
+    return wrap_index(merge_index, self);
+}
+
 PyDoc_STRVAR(Repository_walk__doc__,
   "walk(oid, sort_mode) -> iterator\n"
   "\n"
@@ -1088,7 +1110,7 @@ Repository_create_reference_direct(Repository *self,  PyObject *args,
     if (err < 0)
         return NULL;
 
-    err = git_reference_create(&c_reference, self->repo, c_name, &oid, force);
+    err = git_reference_create(&c_reference, self->repo, c_name, &oid, force, NULL, NULL);
     if (err < 0)
         return Error_set(err);
 
@@ -1122,7 +1144,7 @@ Repository_create_reference_symbolic(Repository *self,  PyObject *args,
         return NULL;
 
     err = git_reference_symbolic_create(&c_reference, self->repo, c_name,
-                                        c_target, force);
+                                        c_target, force, NULL, NULL);
     if (err < 0)
         return Error_set(err);
 
@@ -1597,6 +1619,7 @@ PyMethodDef Repository_methods[] = {
     METHOD(Repository, walk, METH_VARARGS),
     METHOD(Repository, merge_base, METH_VARARGS),
     METHOD(Repository, merge, METH_O),
+    METHOD(Repository, merge_commits, METH_VARARGS),
     METHOD(Repository, read, METH_O),
     METHOD(Repository, write, METH_VARARGS),
     METHOD(Repository, create_reference_direct, METH_VARARGS),
