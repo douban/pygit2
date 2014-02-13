@@ -299,7 +299,7 @@ PyObject *
 Diff_patch__get__(Diff *self)
 {
     git_patch* patch;
-    char **strings = NULL;
+    git_buf *bufs = NULL;
     char *buffer = NULL;
     int err = GIT_ERROR;
     size_t i, len, num;
@@ -308,27 +308,28 @@ Diff_patch__get__(Diff *self)
     num = git_diff_num_deltas(self->list);
     if (num == 0)
         Py_RETURN_NONE;
-    MALLOC(strings, num * sizeof(char*), cleanup);
+    MALLOC(bufs, num * sizeof(git_buf), cleanup);
+    memset((void *)bufs, 0, num * sizeof(git_buf));
 
     for (i = 0, len = 1; i < num ; ++i) {
         err = git_patch_from_diff(&patch, self->list, i);
         if (err < 0)
             goto cleanup;
 
-        err = git_patch_to_str(&(strings[i]), patch);
+        err = git_patch_to_buf(&bufs[i], patch);
         if (err < 0)
             goto cleanup;
 
-        len += strlen(strings[i]);
+        len += bufs[i].size;
         git_patch_free(patch);
     }
 
     CALLOC(buffer, (len + 1), sizeof(char), cleanup);
     for (i = 0; i < num; ++i) {
-        strcat(buffer, strings[i]);
-        free(strings[i]);
+        strcat(buffer, bufs[i].ptr);
+        git_buf_free(&bufs[i]);
     }
-    free(strings);
+    free(bufs);
 
     py_patch = to_unicode(buffer, NULL, NULL);
     free(buffer);
