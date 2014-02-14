@@ -1,4 +1,4 @@
-# Copyright 2010-2013 The pygit2 contributors
+# Copyright 2010-2014 The pygit2 contributors
 #
 # This file is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2,
@@ -23,5 +23,4 @@
 # the Free Software Foundation, 51 Franklin Street, Fifth Floor,
 # Boston, MA 02110-1301, USA.
 
-
-__version__ = '0.20.1'
+__version__ = '0.20.2'
