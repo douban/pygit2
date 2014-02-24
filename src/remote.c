@@ -67,23 +67,32 @@ TransferProgress_dealloc(TransferProgress *self)
 }
 
 PyMemberDef TransferProgress_members[] = {
-    RMEMBER(TransferProgress, total_objects, T_UINT, "Total number objects to download"),
-    RMEMBER(TransferProgress, indexed_objects, T_UINT, "Objects which have been indexed"),
-    RMEMBER(TransferProgress, received_objects, T_UINT, "Objects which have been received up to now"),
-    RMEMBER(TransferProgress, local_objects, T_UINT, "Local objects which were used to fix the thin pack"),
-    RMEMBER(TransferProgress, total_deltas, T_UINT, "Total number of deltas in the pack"),
-    RMEMBER(TransferProgress, indexed_deltas, T_UINT, "Deltas which have been indexed"),
-    /* FIXME: technically this is unsigned, but there's no value for size_t here. */
-    RMEMBER(TransferProgress, received_bytes, T_PYSSIZET, "Number of bytes received up to now"),
+    RMEMBER(TransferProgress, total_objects, T_UINT,
+            "Total number objects to download"),
+    RMEMBER(TransferProgress, indexed_objects, T_UINT,
+            "Objects which have been indexed"),
+    RMEMBER(TransferProgress, received_objects, T_UINT,
+            "Objects which have been received up to now"),
+    RMEMBER(TransferProgress, local_objects, T_UINT,
+            "Local objects which were used to fix the thin pack"),
+    RMEMBER(TransferProgress, total_deltas, T_UINT,
+            "Total number of deltas in the pack"),
+    RMEMBER(TransferProgress, indexed_deltas, T_UINT,
+            "Deltas which have been indexed"),
+    /* FIXME: technically this is unsigned, but there's no value for size_t
+     * here. */
+    RMEMBER(TransferProgress, received_bytes, T_PYSSIZET,
+            "Number of bytes received up to now"),
     {NULL},
 };
 
-PyDoc_STRVAR(TransferProgress__doc__, "Progress downloading and indexing data during a fetch");
+PyDoc_STRVAR(TransferProgress__doc__,
+    "Progress downloading and indexing data during a fetch");
 
 PyTypeObject TransferProgressType = {
     PyVarObject_HEAD_INIT(NULL, 0)
     "_pygit2.TransferProgress",                /* tp_name           */
-    sizeof(TransferProgress),                            /* tp_basicsize      */
+    sizeof(TransferProgress),                  /* tp_basicsize      */
     0,                                         /* tp_itemsize       */
     (destructor)TransferProgress_dealloc,      /* tp_dealloc        */
     0,                                         /* tp_print          */
@@ -101,7 +110,7 @@ PyTypeObject TransferProgressType = {
     0,                                         /* tp_setattro       */
     0,                                         /* tp_as_buffer      */
     Py_TPFLAGS_DEFAULT,                        /* tp_flags          */
-    TransferProgress__doc__,                            /* tp_doc            */
+    TransferProgress__doc__,                   /* tp_doc            */
     0,                                         /* tp_traverse       */
     0,                                         /* tp_clear          */
     0,                                         /* tp_richcompare    */
@@ -232,77 +241,13 @@ Remote_name__set__(Remote *self, PyObject* py_name)
     name = py_str_borrow_c_str(&tname, py_name, NULL);
     if (name != NULL) {
         err = git_remote_rename(self->remote, name, NULL, NULL);
-	Py_DECREF(tname);
+        Py_DECREF(tname);
 
         if (err == GIT_OK)
             return 0;
 
         Error_set(err);
     }
-
-    return -1;
-}
-
-
-PyObject *
-get_pylist_from_git_strarray(git_strarray *strarray)
-{
-    int index;
-    PyObject *new_list;
-
-    new_list = PyList_New(strarray->count);
-    if (new_list == NULL)
-        return NULL;
-
-    for (index = 0; index < strarray->count; index++)
-        PyList_SET_ITEM(new_list, index,
-                        to_unicode(strarray->strings[index], NULL, NULL));
-
-    return new_list;
-}
-
-int
-get_strarraygit_from_pylist(git_strarray *array, PyObject *pylist)
-{
-    Py_ssize_t index, n;
-    PyObject *item;
-    void *ptr;
-    char *str;
-
-    if (!PyList_Check(pylist)) {
-        PyErr_SetString(PyExc_TypeError, "Value must be a list");
-        return -1;
-    }
-
-    n = PyList_Size(pylist);
-
-    /* allocate new git_strarray */
-    ptr = calloc(n, sizeof(char *));
-    if (!ptr) {
-        PyErr_SetNone(PyExc_MemoryError);
-        return -1;
-    }
-
-    array->strings = ptr;
-    array->count = n;
-
-    for (index = 0; index < n; index++) {
-        item = PyList_GetItem(pylist, index);
-        str = py_str_to_c_str(item, NULL);
-        if (!str)
-            goto on_error;
-
-        array->strings[index] = str;
-    }
-
-    return 0;
-
-on_error:
-    n = index;
-    for (index = 0; index < n; index++) {
-        free(array->strings[index]);
-    }
-    free(array->strings);
 
     return -1;
 }
@@ -412,7 +357,7 @@ Remote_url__set__(Remote *self, PyObject* py_url)
     url = py_str_borrow_c_str(&turl, py_url, NULL);
     if (url != NULL) {
         err = git_remote_set_url(self->remote, url);
-	Py_DECREF(turl);
+        Py_DECREF(turl);
 
         if (err == GIT_OK)
             return 0;
@@ -449,7 +394,7 @@ Remote_push_url__set__(Remote *self, PyObject* py_url)
     url = py_str_borrow_c_str(&turl, py_url, NULL);
     if (url != NULL) {
         err = git_remote_set_pushurl(self->remote, url);
-	Py_DECREF(turl);
+        Py_DECREF(turl);
 
         if (err == GIT_OK)
             return 0;
