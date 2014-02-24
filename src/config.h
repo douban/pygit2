@@ -32,7 +32,7 @@
 #include <Python.h>
 #include <git2.h>
 
-PyObject* wrap_config(char *c_path);
+PyObject* wrap_config(git_buf *);
 PyObject* Config_get_global_config(void);
 PyObject* Config_get_system_config(void);
 PyObject* Config_add_file(Config *self, PyObject *args, PyObject *kwds);

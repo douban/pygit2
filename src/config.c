@@ -37,15 +37,17 @@ extern PyTypeObject ConfigIterType;
 
 
 PyObject *
-wrap_config(char *c_path) {
+wrap_config(git_buf *c_path) {
     int err;
     PyObject *py_path;
     Config *py_config;
 
-    py_path = Py_BuildValue("(s)", c_path);
+    py_path = Py_BuildValue("(s)", c_path->ptr);
     py_config = PyObject_New(Config, &ConfigType);
 
     err = Config_init(py_config, py_path, NULL);
+    git_buf_free(c_path);
+
     if (err < 0)
         return  NULL;
 
@@ -116,7 +118,7 @@ Config_get_global_config(void)
         return Error_set(err);
     }
 
-    return wrap_config(buf.ptr);
+    return wrap_config(&buf);
 }
 
 
@@ -141,7 +143,7 @@ Config_get_system_config(void)
         return Error_set(err);
     }
 
-    return wrap_config(buf.ptr);
+    return wrap_config(&buf);
 }
 
 
