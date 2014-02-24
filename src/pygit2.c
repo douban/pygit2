@@ -196,6 +196,7 @@ PyObject *
 discover_repository(PyObject *self, PyObject *args)
 {
     const char *path;
+    git_buf buf = {0};
     int across_fs = 0;
     const char *ceiling_dirs = NULL;
     char repo_path[MAXPATHLEN];
@@ -204,12 +205,12 @@ discover_repository(PyObject *self, PyObject *args)
     if (!PyArg_ParseTuple(args, "s|Is", &path, &across_fs, &ceiling_dirs))
         return NULL;
 
-    err = git_repository_discover(repo_path, sizeof(repo_path),
+    err = git_repository_discover(&buf,
             path, across_fs, ceiling_dirs);
     if (err < 0)
         return Error_set_str(err, path);
 
-    return to_path(repo_path);
+    return to_path(buf.ptr);
 };
 
 PyDoc_STRVAR(hashfile__doc__,

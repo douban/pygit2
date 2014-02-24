@@ -162,7 +162,7 @@ Reference_rename(Reference *self, PyObject *py_name)
         return NULL;
 
     /* Rename */
-    err = git_reference_rename(&new_reference, self->reference, c_name, 0);
+    err = git_reference_rename(&new_reference, self->reference, c_name, 0, NULL, NULL);
     git_reference_free(self->reference);
     free(c_name);
     if (err < 0)

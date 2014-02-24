@@ -80,8 +80,8 @@ wrap_patch(git_patch *patch)
         py_patch->status = git_diff_status_char(delta->status);
         py_patch->similarity = delta->similarity;
         py_patch->flags = delta->flags;
-        py_patch->old_oid = git_oid_allocfmt(&delta->old_file.oid);
-        py_patch->new_oid = git_oid_allocfmt(&delta->new_file.oid);
+        py_patch->old_oid = git_oid_allocfmt(&delta->old_file.id);
+        py_patch->new_oid = git_oid_allocfmt(&delta->new_file.id);
 
         git_patch_line_stats(NULL, &additions, &deletions, patch);
         py_patch->additions = additions;
