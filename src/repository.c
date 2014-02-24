@@ -578,10 +578,14 @@ Repository_merge_base(Repository *self, PyObject *args)
         return NULL;
 
     err = git_merge_base(&oid, self->repo, &oid1, &oid2);
-    if (err < 0)
-        return Error_set(err);
 
-    return git_oid_to_python(&oid);
+    if (err == 0)
+        return git_oid_to_python(&oid);
+
+    if (err == GIT_ENOTFOUND)
+        Py_RETURN_NONE;
+
+    return Error_set(err);
 }
 
 PyDoc_STRVAR(Repository_merge__doc__,
