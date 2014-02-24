@@ -79,7 +79,7 @@ MergeResult_fastforward_oid__get__(MergeResult *self)
 {
     if (git_merge_result_is_fastforward(self->result)) {
         git_oid fastforward_oid;
-        git_merge_result_fastforward_oid(&fastforward_oid, self->result);
+        git_merge_result_fastforward_id(&fastforward_oid, self->result);
         return git_oid_to_python((const git_oid *)&fastforward_oid);
     }
     else Py_RETURN_NONE;
