@@ -84,7 +84,6 @@ py_str_borrow_c_str(PyObject **tvalue, PyObject *value, const char *encoding)
     return NULL;
 }
 
-<<<<<<< HEAD
 int
 py_list_to_opts(PyObject *py_paths, git_diff_options *opts)
 {
@@ -133,7 +132,9 @@ free_opts_pathspec(PyObject *py_paths, git_diff_options *opts)
 
     PyMem_Free(opts->pathspec.strings);
     return 0;
-=======
+
+}
+
 /**
  * Converts the (struct) git_strarray to a Python list
  */
@@ -202,5 +203,4 @@ on_error:
     free(array->strings);
 
     return -1;
->>>>>>> 0e4a27284f64a390911316cc48f2c4b344099a49
 }
