@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright 2010-2013 The pygit2 contributors
+# Copyright 2010-2014 The pygit2 contributors
 #
 # This file is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2,
@@ -168,6 +168,7 @@ class RepositoryTest(utils.BareRepoTestCase):
         with open(tempfile_path, 'w') as fh:
             fh.write(data)
         hashed_sha1 = hashfile(tempfile_path)
+        os.unlink(tempfile_path)
         written_sha1 = self.repo.create_blob(data)
         self.assertEqual(hashed_sha1, written_sha1)
 
@@ -312,7 +313,7 @@ class RepositoryTest_III(utils.RepoTestCaseForMerging):
 
     def test_merge_uptodate(self):
         branch_head_hex = '5ebeeebb320790caf276b9fc8b24546d63316533'
-        branch_oid = self.repo.get(branch_head_hex).oid
+        branch_oid = self.repo.get(branch_head_hex).id
         merge_result = self.repo.merge(branch_oid)
         self.assertTrue(merge_result.is_uptodate)
         self.assertFalse(merge_result.is_fastforward)
@@ -343,7 +344,7 @@ class RepositoryTest_III(utils.RepoTestCaseForMerging):
 
     def test_merge_fastforward(self):
         branch_head_hex = 'e97b4cfd5db0fb4ebabf4f203979ca4e5d1c7c87'
-        branch_oid = self.repo.get(branch_head_hex).oid
+        branch_oid = self.repo.get(branch_head_hex).id
         merge_result = self.repo.merge(branch_oid)
         self.assertFalse(merge_result.is_uptodate)
         self.assertTrue(merge_result.is_fastforward)
@@ -354,7 +355,7 @@ class RepositoryTest_III(utils.RepoTestCaseForMerging):
 
     def test_merge_no_fastforward_no_conflicts(self):
         branch_head_hex = '03490f16b15a09913edb3a067a3dc67fbb8d41f1'
-        branch_oid = self.repo.get(branch_head_hex).oid
+        branch_oid = self.repo.get(branch_head_hex).id
         merge_result = self.repo.merge(branch_oid)
         self.assertFalse(merge_result.is_uptodate)
         self.assertFalse(merge_result.is_fastforward)
@@ -370,7 +371,7 @@ class RepositoryTest_III(utils.RepoTestCaseForMerging):
 
     def test_merge_no_fastforward_conflicts(self):
         branch_head_hex = '1b2bae55ac95a4be3f8983b86cd579226d0eb247'
-        branch_oid = self.repo.get(branch_head_hex).oid
+        branch_oid = self.repo.get(branch_head_hex).id
         merge_result = self.repo.merge(branch_oid)
         self.assertFalse(merge_result.is_uptodate)
         self.assertFalse(merge_result.is_fastforward)
@@ -390,12 +391,22 @@ class RepositoryTest_III(utils.RepoTestCaseForMerging):
 
     def test_merge_already_something_in_index(self):
         branch_head_hex = '03490f16b15a09913edb3a067a3dc67fbb8d41f1'
-        branch_oid = self.repo.get(branch_head_hex).oid
+        branch_oid = self.repo.get(branch_head_hex).id
         with open(os.path.join(self.repo.workdir, 'inindex.txt'), 'w') as f:
             f.write('new content')
         self.repo.index.add('inindex.txt')
         self.assertRaises(pygit2.GitError, self.repo.merge, branch_oid)
 
+class RepositorySignatureTest(utils.RepoTestCase):
+
+    def test_default_signature(self):
+        config = self.repo.config
+        config['user.name'] = 'Random J Hacker'
+        config['user.email'] ='rjh@example.com'
+
+        sig = self.repo.default_signature
+        self.assertEqual('Random J Hacker', sig.name)
+        self.assertEqual('rjh@example.com', sig.email)
 
 class NewRepositoryTest(utils.NoRepoTestCase):
 

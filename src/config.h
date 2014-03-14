@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2013 The pygit2 contributors
+ * Copyright 2010-2014 The pygit2 contributors
  *
  * This file is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2,
@@ -32,7 +32,7 @@
 #include <Python.h>
 #include <git2.h>
 
-PyObject* wrap_config(char *c_path);
+PyObject* wrap_config(git_buf *);
 PyObject* Config_get_global_config(void);
 PyObject* Config_get_system_config(void);
 PyObject* Config_add_file(Config *self, PyObject *args, PyObject *kwds);

@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 #
-# Copyright 2010-2013 The pygit2 contributors
+# Copyright 2010-2014 The pygit2 contributors
 #
 # This file is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2,
@@ -31,8 +31,10 @@ from __future__ import absolute_import
 from __future__ import unicode_literals
 import os
 import unittest
+import tempfile
 
 import pygit2
+from pygit2 import Repository
 from . import utils
 
 
@@ -72,6 +74,42 @@ class IndexTest(utils.RepoTestCase):
         self.assertTrue('bye.txt' in index)
         self.assertEqual(len(index), 3)
         self.assertEqual(index['bye.txt'].hex, sha)
+
+    def test_add_all(self):
+        self.test_clear()
+
+        index = self.repo.index
+
+        sha_bye = '0907563af06c7464d62a70cdd135a6ba7d2b41d8'
+        sha_hello = 'a520c24d85fbfc815d385957eed41406ca5a860b'
+
+        index.add_all(['*.txt'])
+
+        self.assertTrue('bye.txt' in index)
+        self.assertTrue('hello.txt' in index)
+
+        self.assertEqual(index['bye.txt'].hex, sha_bye)
+        self.assertEqual(index['hello.txt'].hex, sha_hello)
+
+        self.test_clear()
+
+        index.add_all(['bye.t??', 'hello.*'])
+
+        self.assertTrue('bye.txt' in index)
+        self.assertTrue('hello.txt' in index)
+
+        self.assertEqual(index['bye.txt'].hex, sha_bye)
+        self.assertEqual(index['hello.txt'].hex, sha_hello)
+
+        self.test_clear()
+
+        index.add_all(['[byehlo]*.txt'])
+
+        self.assertTrue('bye.txt' in index)
+        self.assertTrue('hello.txt' in index)
+
+        self.assertEqual(index['bye.txt'].hex, sha_bye)
+        self.assertEqual(index['hello.txt'].hex, sha_hello)
 
     def test_clear(self):
         index = self.repo.index
@@ -140,6 +178,34 @@ class IndexTest(utils.RepoTestCase):
         index.remove('hello.txt')
         self.assertFalse('hello.txt' in index)
 
+    def test_change_attributes(self):
+        index = self.repo.index
+        entry = index['hello.txt']
+        ign_entry = index['.gitignore']
+        self.assertNotEqual(ign_entry.oid, entry.oid)
+        self.assertNotEqual(entry.mode, pygit2.GIT_FILEMODE_BLOB_EXECUTABLE)
+        entry.path = 'foo.txt'
+        entry.oid = ign_entry.oid
+        entry.mode = pygit2.GIT_FILEMODE_BLOB_EXECUTABLE
+        self.assertEqual('foo.txt', entry.path)
+        self.assertEqual(ign_entry.oid, entry.oid)
+        self.assertEqual(pygit2.GIT_FILEMODE_BLOB_EXECUTABLE, entry.mode)
+
+    def test_write_tree_to(self):
+        with utils.TemporaryRepository(('tar', 'emptyrepo')) as path:
+            nrepo = Repository(path)
+            id = self.repo.index.write_tree(nrepo)
+            self.assertNotEqual(None, nrepo[id])
+
+class IndexEntryTest(utils.RepoTestCase):
+
+    def test_create_entry(self):
+        index = self.repo.index
+        hello_entry = index['hello.txt']
+        entry = pygit2.IndexEntry('README.md', hello_entry.oid, hello_entry.mode)
+        index.add(entry)
+        tree_id = index.write_tree()
+        self.assertEqual('60e769e57ae1d6a2ab75d8d253139e6260e1f912', str(tree_id))
 
 if __name__ == '__main__':
     unittest.main()

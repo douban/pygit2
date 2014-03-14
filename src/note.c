@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2013 The pygit2 contributors
+ * Copyright 2010-2014 The pygit2 contributors
  *
  * This file is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2,
@@ -72,7 +72,7 @@ PyDoc_STRVAR(Note_oid__doc__,
 PyObject *
 Note_oid__get__(Note *self)
 {
-    return git_oid_to_python(git_note_oid(self->note));
+    return git_oid_to_python(git_note_id(self->note));
 }
 
 

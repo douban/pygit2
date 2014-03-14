@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 #
-# Copyright 2010-2013 The pygit2 contributors
+# Copyright 2010-2014 The pygit2 contributors
 #
 # This file is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2,
@@ -115,7 +115,7 @@ class BlameTest(utils.RepoTestCase):
 
         for rev, num_commits in revs:
             commit = repo.revparse_single(rev)
-            blame = repo.blame(PATH, newest_commit=commit.oid)
+            blame = repo.blame(PATH, newest_commit=commit.id)
 
             self.assertEqual(len(blame), num_commits)
 

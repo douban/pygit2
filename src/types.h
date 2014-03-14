@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2013 The pygit2 contributors
+ * Copyright 2010-2014 The pygit2 contributors
  *
  * This file is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2,
@@ -77,6 +77,11 @@ typedef struct {
     git_config* config;
 } Config;
 
+typedef struct {
+    PyObject_HEAD
+    Config *owner;
+    git_config_iterator *iter;
+} ConfigIter;
 
 /* git_note */
 typedef struct {
@@ -147,7 +152,7 @@ SIMPLE_TYPE(Index, git_index, index)
 
 typedef struct {
     PyObject_HEAD
-    const git_index_entry *entry;
+    git_index_entry entry;
 } IndexEntry;
 
 typedef struct {
@@ -190,8 +195,34 @@ typedef struct {
 
 
 /* git_remote */
-SIMPLE_TYPE(Remote, git_remote, remote)
+typedef struct {
+    PyObject_HEAD
+    Repository *repo;
+    git_remote *remote;
+    /* Callbacks for network events */
+    PyObject *progress;
+    PyObject *transfer_progress;
+    PyObject *update_tips;
+} Remote;
 
+/* git_refspec */
+typedef struct {
+    PyObject_HEAD
+    const Remote *owner;
+    const git_refspec *refspec;
+} Refspec;
+
+/* git_transfer_progress */
+typedef struct {
+    PyObject_HEAD
+    unsigned int total_objects;
+    unsigned int indexed_objects;
+    unsigned int received_objects;
+    unsigned int local_objects;
+    unsigned int total_deltas;
+    unsigned int indexed_deltas;
+    size_t received_bytes;
+} TransferProgress;
 
 /* git_blame */
 SIMPLE_TYPE(Blame, git_blame, blame)

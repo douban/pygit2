@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2013 The pygit2 contributors
+ * Copyright 2010-2014 The pygit2 contributors
  *
  * This file is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2,
@@ -40,6 +40,7 @@
 #include "blame.h"
 #include "mergeresult.h"
 #include "index.h"
+#include "signature.h"
 #include <git2/odb_backend.h>
 
 extern PyObject *GitError;
@@ -77,7 +78,7 @@ Repository_init(Repository *self, PyObject *args, PyObject *kwds)
     char *path;
     int err;
 
-    if (kwds) {
+    if (kwds && PyDict_Size(kwds) > 0) {
         PyErr_SetString(PyExc_TypeError,
                         "Repository takes no keyword arguments");
         return -1;
@@ -181,14 +182,15 @@ int
 Repository_head__set__(Repository *self, PyObject *py_refname)
 {
     int err;
-    char *refname;
+    const char *refname;
+    PyObject *trefname;
 
-    refname = py_str_to_c_str(py_refname, NULL);
+    refname = py_str_borrow_c_str(&trefname, py_refname, NULL);
     if (refname == NULL)
         return -1;
 
-    err = git_repository_set_head(self->repo, refname);
-    free(refname);
+    err = git_repository_set_head(self->repo, refname, NULL, NULL);
+    Py_DECREF(trefname);
     if (err < 0) {
         Error_set_str(err, refname);
         return -1;
@@ -318,11 +320,12 @@ PyObject *
 Repository_revparse_single(Repository *self, PyObject *py_spec)
 {
     git_object *c_obj;
-    char *c_spec;
+    const char *c_spec;
+    PyObject *tspec;
     int err;
 
     /* 1- Get the C revision spec */
-    c_spec = py_str_to_c_str(py_spec, NULL);
+    c_spec = py_str_borrow_c_str(&tspec, py_spec, NULL);
     if (c_spec == NULL)
         return NULL;
 
@@ -331,10 +334,10 @@ Repository_revparse_single(Repository *self, PyObject *py_spec)
 
     if (err < 0) {
         PyObject *err_obj = Error_set_str(err, c_spec);
-        free(c_spec);
+        Py_DECREF(tspec);
         return err_obj;
     }
-    free(c_spec);
+    Py_DECREF(tspec);
 
     return wrap_object(c_obj, self);
 }
@@ -575,10 +578,14 @@ Repository_merge_base(Repository *self, PyObject *args)
         return NULL;
 
     err = git_merge_base(&oid, self->repo, &oid1, &oid2);
-    if (err < 0)
-        return Error_set(err);
 
-    return git_oid_to_python(&oid);
+    if (err == 0)
+        return git_oid_to_python(&oid);
+
+    if (err == GIT_ENOTFOUND)
+        Py_RETURN_NONE;
+
+    return Error_set(err);
 }
 
 PyDoc_STRVAR(Repository_merge__doc__,
@@ -608,7 +615,7 @@ Repository_merge(Repository *self, PyObject *py_oid)
     if (len == 0)
         return NULL;
 
-    err = git_merge_head_from_oid(&oid_merge_head, self->repo, &oid);
+    err = git_merge_head_from_id(&oid_merge_head, self->repo, &oid);
     if (err < 0)
         return Error_set(err);
 
@@ -645,13 +652,13 @@ Repository_merge_commits(Repository *self, PyObject *args)
 }
 
 PyDoc_STRVAR(Repository_walk__doc__,
-  "walk(oid, sort_mode) -> iterator\n"
+  "walk(oid[, sort_mode]) -> iterator\n"
   "\n"
   "Generator that traverses the history starting from the given commit.\n"
   "The following types of sorting could be used to control traversing\n"
   "direction:\n"
   "\n"
-  "* GIT_SORT_NONE. This is the default sorting for new walkers\n"
+  "* GIT_SORT_NONE. This is the default sorting for new walkers.\n"
   "  Sort the repository contents in no particular ordering\n"
   "* GIT_SORT_TOPOLOGICAL. Sort the repository contents in topological order\n"
   "  (parents before children); this sorting mode can be combined with\n"
@@ -675,13 +682,13 @@ PyObject *
 Repository_walk(Repository *self, PyObject *args)
 {
     PyObject *value;
-    unsigned int sort;
+    unsigned int sort = GIT_SORT_NONE;
     int err;
     git_oid oid;
     git_revwalk *walk;
     Walker *py_walker;
 
-    if (!PyArg_ParseTuple(args, "OI", &value, &sort))
+    if (!PyArg_ParseTuple(args, "O|I", &value, &sort))
         return NULL;
 
     err = git_revwalk_new(&walk, self->repo);
@@ -803,7 +810,8 @@ Repository_create_commit(Repository *self, PyObject *args)
     Signature *py_author, *py_committer;
     PyObject *py_oid, *py_message, *py_parents, *py_parent;
     PyObject *py_result = NULL;
-    char *message = NULL;
+    PyObject *tmessage;
+    const char *message = NULL;
     char *update_ref = NULL;
     char *encoding = NULL;
     git_oid oid;
@@ -827,7 +835,7 @@ Repository_create_commit(Repository *self, PyObject *args)
     if (len == 0)
         goto out;
 
-    message = py_str_to_c_str(py_message, encoding);
+    message = py_str_borrow_c_str(&tmessage, py_message, encoding);
     if (message == NULL)
         goto out;
 
@@ -867,7 +875,7 @@ Repository_create_commit(Repository *self, PyObject *args)
     py_result = git_oid_to_python(&oid);
 
 out:
-    free(message);
+    Py_DECREF(tmessage);
     git_tree_free(tree);
     while (i > 0) {
         i--;
@@ -943,7 +951,7 @@ Repository_create_branch(Repository *self, PyObject *args)
     if (!PyArg_ParseTuple(args, "sO!|i", &c_name, &CommitType, &py_commit, &force))
         return NULL;
 
-    err = git_branch_create(&c_reference, self->repo, c_name, py_commit->commit, force);
+    err = git_branch_create(&c_reference, self->repo, c_name, py_commit->commit, force, NULL, NULL);
     if (err < 0)
         return Error_set(err);
 
@@ -1300,7 +1308,6 @@ PyDoc_STRVAR(Repository_create_remote__doc__,
 PyObject *
 Repository_create_remote(Repository *self, PyObject *args)
 {
-    Remote *py_remote;
     git_remote *remote;
     char *name = NULL, *url = NULL;
     int err;
@@ -1312,12 +1319,7 @@ Repository_create_remote(Repository *self, PyObject *args)
     if (err < 0)
         return Error_set(err);
 
-    py_remote = PyObject_New(Remote, &RemoteType);
-    Py_INCREF(self);
-    py_remote->repo = self;
-    py_remote->remote = remote;
-
-    return (PyObject*) py_remote;
+    return (PyObject*) wrap_remote(remote, self);
 }
 
 
@@ -1327,26 +1329,50 @@ PyObject *
 Repository_remotes__get__(Repository *self)
 {
     git_strarray remotes;
-    PyObject* py_list = NULL, *py_args = NULL;
-    Remote *py_remote;
+    git_remote *remote = NULL;
+    PyObject *py_list = NULL;
+    PyObject *py_remote = NULL;
     size_t i;
+    int err;
 
     git_remote_list(&remotes, self->repo);
 
     py_list = PyList_New(remotes.count);
     for (i=0; i < remotes.count; ++i) {
-        py_remote = PyObject_New(Remote, &RemoteType);
-        py_args = Py_BuildValue("Os", self, remotes.strings[i]);
-        Remote_init(py_remote, py_args, NULL);
-        Py_DECREF(py_args);
-        PyList_SetItem(py_list, i, (PyObject*) py_remote);
+        err = git_remote_load(&remote, self->repo, remotes.strings[i]);
+        if (err < 0)
+            goto cleanup;
+        py_remote = wrap_remote(remote, self);
+        if (py_remote == NULL)
+            goto cleanup;
+        PyList_SetItem(py_list, i, py_remote);
     }
 
     git_strarray_free(&remotes);
-
     return (PyObject*) py_list;
+
+cleanup:
+    git_strarray_free(&remotes);
+    if (py_list)
+        Py_DECREF(py_list);
+    if (err < 0)
+        return Error_set(err);
+    return NULL;
 }
 
+PyDoc_STRVAR(Repository_default_signature__doc__, "Return the signature according to the repository's configuration");
+
+PyObject *
+Repository_default_signature__get__(Repository *self)
+{
+    git_signature *sig;
+    int err;
+
+    if ((err = git_signature_default(&sig, self->repo)) < 0)
+        return Error_set(err);
+
+    return build_signature((Object*) self, sig, "utf-8");
+}
 
 PyDoc_STRVAR(Repository_checkout_head__doc__,
     "checkout_head(strategy)\n"
@@ -1603,7 +1629,7 @@ Repository_reset(Repository *self, PyObject* args)
 
     err = git_object_lookup_prefix(&target, self->repo, &oid, len,
                                    GIT_OBJ_ANY);
-    err = err < 0 ? err : git_reset(self->repo, target, reset_type);
+    err = err < 0 ? err : git_reset(self->repo, target, reset_type, NULL, NULL);
     git_object_free(target);
     if (err < 0)
         return Error_set_oid(err, &oid, len);
@@ -1657,6 +1683,7 @@ PyGetSetDef Repository_getseters[] = {
     GETTER(Repository, config),
     GETTER(Repository, workdir),
     GETTER(Repository, remotes),
+    GETTER(Repository, default_signature),
     {NULL}
 };
 

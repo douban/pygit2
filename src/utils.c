@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2013 The pygit2 contributors
+ * Copyright 2010-2014 The pygit2 contributors
  *
  * This file is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2,
@@ -32,27 +32,50 @@
 
 extern PyTypeObject ReferenceType;
 
-/* py_str_to_c_str() returns a newly allocated C string holding
- * the string contained in the value argument. */
+/**
+ * py_str_to_c_str() returns a newly allocated C string holding the string
+ * contained in the 'value' argument.
+ */
 char *
 py_str_to_c_str(PyObject *value, const char *encoding)
 {
+    const char *borrowed;
     char *c_str = NULL;
+    PyObject *tmp = NULL;
+
+    borrowed = py_str_borrow_c_str(&tmp, value, encoding);
+    if (!borrowed)
+        return NULL;
+
+    c_str = strdup(borrowed);
+
+    Py_DECREF(tmp);
+    return c_str;
+}
+
+/**
+ * Return a pointer to the underlying C string in 'value'. The pointer is
+ * guaranteed by 'tvalue'. Decrease its refcount when done with the string.
+ */
+const char *
+py_str_borrow_c_str(PyObject **tvalue, PyObject *value, const char *encoding)
+{
     /* Case 1: byte string */
-    if (PyBytes_Check(value))
-        return strdup(PyBytes_AsString(value));
+    if (PyBytes_Check(value)) {
+        Py_INCREF(value);
+        *tvalue = value;
+        return PyBytes_AsString(value);
+    }
 
     /* Case 2: text string */
     if (PyUnicode_Check(value)) {
         if (encoding == NULL)
-            value = PyUnicode_AsUTF8String(value);
+            *tvalue = PyUnicode_AsUTF8String(value);
         else
-            value = PyUnicode_AsEncodedString(value, encoding, "strict");
-        if (value == NULL)
+            *tvalue = PyUnicode_AsEncodedString(value, encoding, "strict");
+        if (*tvalue == NULL)
             return NULL;
-        c_str = strdup(PyBytes_AsString(value));
-        Py_DECREF(value);
-        return c_str;
+        return PyBytes_AsString(*tvalue);
     }
 
     /* Type error */
@@ -109,4 +132,75 @@ free_opts_pathspec(PyObject *py_paths, git_diff_options *opts)
 
     PyMem_Free(opts->pathspec.strings);
     return 0;
+
+}
+
+/**
+ * Converts the (struct) git_strarray to a Python list
+ */
+PyObject *
+get_pylist_from_git_strarray(git_strarray *strarray)
+{
+    int index;
+    PyObject *new_list;
+
+    new_list = PyList_New(strarray->count);
+    if (new_list == NULL)
+        return NULL;
+
+    for (index = 0; index < strarray->count; index++)
+        PyList_SET_ITEM(new_list, index,
+                        to_unicode(strarray->strings[index], NULL, NULL));
+
+    return new_list;
+}
+
+/**
+ * Converts the Python list to struct git_strarray
+ * returns -1 if conversion failed
+ */
+int
+get_strarraygit_from_pylist(git_strarray *array, PyObject *pylist)
+{
+    Py_ssize_t index, n;
+    PyObject *item;
+    void *ptr;
+    char *str;
+
+    if (!PyList_Check(pylist)) {
+        PyErr_SetString(PyExc_TypeError, "Value must be a list");
+        return -1;
+    }
+
+    n = PyList_Size(pylist);
+
+    /* allocate new git_strarray */
+    ptr = calloc(n, sizeof(char *));
+    if (!ptr) {
+        PyErr_SetNone(PyExc_MemoryError);
+        return -1;
+    }
+
+    array->strings = ptr;
+    array->count = n;
+
+    for (index = 0; index < n; index++) {
+        item = PyList_GetItem(pylist, index);
+        str = py_str_to_c_str(item, NULL);
+        if (!str)
+            goto on_error;
+
+        array->strings[index] = str;
+    }
+
+    return 0;
+
+on_error:
+    n = index;
+    for (index = 0; index < n; index++) {
+        free(array->strings[index]);
+    }
+    free(array->strings);
+
+    return -1;
 }

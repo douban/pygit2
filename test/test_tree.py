@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright 2010-2013 The pygit2 contributors
+# Copyright 2010-2014 The pygit2 contributors
 #
 # This file is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2,
@@ -80,7 +80,7 @@ class TreeTest(utils.BareRepoTestCase):
         subtree_entry = tree['c']
         self.assertTreeEntryEqual(subtree_entry, SUBTREE_SHA, 'c', 0o0040000)
 
-        subtree = self.repo[subtree_entry.oid]
+        subtree = self.repo[subtree_entry.id]
         self.assertEqual(1, len(subtree))
         sha = '297efb891a47de80be0cfe9c639e4b8c9b450989'
         self.assertTreeEntryEqual(subtree[0], sha, 'd', 0o0100644)
@@ -103,8 +103,8 @@ class TreeTest(utils.BareRepoTestCase):
         self.assertEqual(x.filemode, 0o0100644)
         self.assertEqual(y.filemode, 0o0100755)
 
-        self.assertEqual(repo[x.oid].oid, b0)
-        self.assertEqual(repo[y.oid].oid, b1)
+        self.assertEqual(repo[x.id].id, b0)
+        self.assertEqual(repo[y.id].id, b1)
 
 
     def test_modify_tree(self):
@@ -121,8 +121,15 @@ class TreeTest(utils.BareRepoTestCase):
         """
         tree = self.repo[TREE_SHA]
         for tree_entry in tree:
-            self.assertEqual(tree_entry.hex, tree[tree_entry.name].hex)
+            self.assertEqual(tree_entry, tree[tree_entry.name])
 
+    def test_deep_contains(self):
+        tree = self.repo[TREE_SHA]
+        self.assertTrue('a' in tree)
+        self.assertTrue('c' in tree)
+        self.assertTrue('c/d' in tree)
+        self.assertFalse('c/e' in tree)
+        self.assertFalse('d' in tree)
 
 if __name__ == '__main__':
     unittest.main()
