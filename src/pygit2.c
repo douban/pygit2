@@ -80,7 +80,6 @@ extern PyTypeObject NoteIterType;
 extern PyTypeObject BlameType;
 extern PyTypeObject BlameIterType;
 extern PyTypeObject BlameHunkType;
-extern PyTypeObject MergeResultType;
 
 PyDoc_STRVAR(is_repository__doc__,
   "is_repository(path) -> Boolean\n"
@@ -477,9 +476,11 @@ moduleinit(PyObject* m)
     ADD_CONSTANT_INT(m, GIT_BLAME_TRACK_COPIES_SAME_COMMIT_COPIES)
     ADD_CONSTANT_INT(m, GIT_BLAME_TRACK_COPIES_ANY_COMMIT_COPIES)
 
-    /* Merge */
-    INIT_TYPE(MergeResultType, NULL, NULL)
-    ADD_TYPE(m, MergeResult)
+    ADD_CONSTANT_INT(m, GIT_MERGE_ANALYSIS_NONE)
+    ADD_CONSTANT_INT(m, GIT_MERGE_ANALYSIS_NORMAL)
+    ADD_CONSTANT_INT(m, GIT_MERGE_ANALYSIS_UP_TO_DATE)
+    ADD_CONSTANT_INT(m, GIT_MERGE_ANALYSIS_FASTFORWARD)
+    ADD_CONSTANT_INT(m, GIT_MERGE_ANALYSIS_UNBORN)
 
     /* Global initialization of libgit2 */
     git_threads_init();
