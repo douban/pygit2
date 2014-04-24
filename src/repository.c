@@ -38,7 +38,6 @@
 #include "remote.h"
 #include "branch.h"
 #include "blame.h"
-#include "mergeresult.h"
 #include "index.h"
 #include "signature.h"
 #include <git2/odb_backend.h>
@@ -587,6 +586,40 @@ Repository_merge_base(Repository *self, PyObject *args)
 
     return Error_set(err);
 }
+PyDoc_STRVAR(Repository_merge_analysis__doc__,
+  "merge_analysis(id) -> Integer\n"
+  "\n"
+  "Analyzes the given branch and determines the opportunities for merging\n"
+  "them into the HEAD of the repository\n"
+  "\n"
+  "The returned value is a mixture of the GIT_MERGE_ANALYSIS_NONE, _NORMAL,\n"
+  " _UP_TO_DATE, _FASTFORWARD and _UNBORN flags");
+
+PyObject *
+Repository_merge_analysis(Repository *self, PyObject *py_id)
+{
+    int err;
+    size_t len;
+    git_oid id;
+    git_merge_head *merge_head;
+    git_merge_analysis_t analysis;
+
+    len = py_oid_to_git_oid(py_id, &id);
+    if (len == 0)
+        return NULL;
+
+    err = git_merge_head_from_id(&merge_head, self->repo, &id);
+    if (err < 0)
+        return Error_set(err);
+
+    err = git_merge_analysis(&analysis, self->repo, (const git_merge_head **) &merge_head, 1);
+    git_merge_head_free(merge_head);
+
+    if (err < 0)
+        return Error_set(err);
+
+    return PyLong_FromLong(analysis);
+}
 
 PyDoc_STRVAR(Repository_merge__doc__,
   "merge(oid) -> MergeResult\n"
@@ -603,13 +636,12 @@ PyDoc_STRVAR(Repository_merge__doc__,
 PyObject *
 Repository_merge(Repository *self, PyObject *py_oid)
 {
-    git_merge_result *merge_result;
     git_merge_head *oid_merge_head;
     git_oid oid;
-    const git_merge_opts default_opts = GIT_MERGE_OPTS_INIT;
+    const git_merge_options default_opts = GIT_MERGE_OPTIONS_INIT;
+    git_checkout_options checkout_opts = GIT_CHECKOUT_OPTIONS_INIT;
     int err;
     size_t len;
-    PyObject *py_merge_result;
 
     len = py_oid_to_git_oid(py_oid, &oid);
     if (len == 0)
@@ -619,15 +651,14 @@ Repository_merge(Repository *self, PyObject *py_oid)
     if (err < 0)
         return Error_set(err);
 
-    err = git_merge(&merge_result, self->repo,
+    err = git_merge(self->repo,
                     (const git_merge_head **)&oid_merge_head, 1,
-                    &default_opts);
+                    &default_opts, &checkout_opts);
     git_merge_head_free(oid_merge_head);
     if (err < 0)
         return Error_set(err);
 
-    py_merge_result = git_merge_result_to_python(merge_result);
-    return py_merge_result;
+    Py_RETURN_NONE;
 }
 
 PyDoc_STRVAR(Repository_merge_commits__doc__,
@@ -637,7 +668,7 @@ PyObject *
 Repository_merge_commits(Repository *self, PyObject *args)
 {
     Commit *our_commit, *their_commit;
-    git_merge_tree_opts opts = GIT_MERGE_TREE_OPTS_INIT;
+    git_merge_options opts = GIT_MERGE_OPTIONS_INIT;
     git_index *merge_index;
     int err;
 
@@ -1382,7 +1413,7 @@ PyDoc_STRVAR(Repository_checkout_head__doc__,
 PyObject *
 Repository_checkout_head(Repository *self, PyObject *args)
 {
-    git_checkout_opts opts = GIT_CHECKOUT_OPTS_INIT;
+    git_checkout_options opts = GIT_CHECKOUT_OPTIONS_INIT;
     unsigned int strategy;
     int err;
 
@@ -1406,7 +1437,7 @@ PyDoc_STRVAR(Repository_checkout_index__doc__,
 PyObject *
 Repository_checkout_index(Repository *self, PyObject *args)
 {
-    git_checkout_opts opts = GIT_CHECKOUT_OPTS_INIT;
+    git_checkout_options opts = GIT_CHECKOUT_OPTIONS_INIT;
     unsigned int strategy;
     int err;
 
@@ -1430,7 +1461,7 @@ PyDoc_STRVAR(Repository_checkout_tree__doc__,
 PyObject *
 Repository_checkout_tree(Repository *self, PyObject *args)
 {
-    git_checkout_opts opts = GIT_CHECKOUT_OPTS_INIT;
+    git_checkout_options opts = GIT_CHECKOUT_OPTIONS_INIT;
     unsigned int strategy;
     Object *py_object;
     int err;
@@ -1645,6 +1676,7 @@ PyMethodDef Repository_methods[] = {
     METHOD(Repository, TreeBuilder, METH_VARARGS),
     METHOD(Repository, walk, METH_VARARGS),
     METHOD(Repository, merge_base, METH_VARARGS),
+    METHOD(Repository, merge_analysis, METH_O),
     METHOD(Repository, merge, METH_O),
     METHOD(Repository, merge_commits, METH_VARARGS),
     METHOD(Repository, read, METH_O),
