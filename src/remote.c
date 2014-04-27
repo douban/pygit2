@@ -757,7 +757,7 @@ wrap_remote(git_remote *c_remote, Repository *repo)
         py_remote->transfer_progress = NULL;
         py_remote->update_tips = NULL;
 
-        callbacks.progress = progress_cb;
+        callbacks.sideband_progress = progress_cb;
         callbacks.transfer_progress = transfer_progress_cb;
         callbacks.update_tips = update_tips_cb;
         callbacks.payload = py_remote;
