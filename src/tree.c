@@ -34,7 +34,6 @@
 #include "oid.h"
 #include "tree.h"
 #include "diff.h"
-#include "mergeresult.h"
 
 extern PyTypeObject TreeType;
 extern PyTypeObject TreeEntryType;
@@ -596,7 +595,7 @@ Tree_merge(Tree *self, PyObject *args, PyObject *kwds)
     Repository *py_repo;
     Tree *py_others;
     Tree *py_base;
-    git_merge_tree_opts opts = GIT_MERGE_TREE_OPTS_INIT;
+    git_merge_options opts = GIT_MERGE_OPTIONS_INIT;
     Index *py_merge_index;
     int err;
     if (!PyArg_ParseTuple(args, "O!O!", &TreeType, &py_others,
