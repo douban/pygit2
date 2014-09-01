@@ -779,10 +779,9 @@ wrap_remote(git_remote *c_remote, Repository *repo)
         py_remote->transfer_progress = NULL;
         py_remote->update_tips = NULL;
 
-        # this is add by our version of pygit2
-        # callbacks.sideband_progress = progress_cb;
+        callbacks.sideband_progress = progress_cb;
 
-        callbacks.progress = progress_cb;
+        /* callbacks.progress = progress_cb; */
         callbacks.credentials = credentials_cb;
 
         callbacks.transfer_progress = transfer_progress_cb;
