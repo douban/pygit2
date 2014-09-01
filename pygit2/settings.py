@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+#
 # Copyright 2010-2014 The pygit2 contributors
 #
 # This file is free software; you can redistribute it and/or modify
@@ -23,4 +25,40 @@
 # the Free Software Foundation, 51 Franklin Street, Fifth Floor,
 # Boston, MA 02110-1301, USA.
 
-__version__ = '0.20.3'
+from _pygit2 import option
+from _pygit2 import GIT_OPT_GET_SEARCH_PATH, GIT_OPT_SET_SEARCH_PATH
+from _pygit2 import GIT_OPT_GET_MWINDOW_SIZE, GIT_OPT_SET_MWINDOW_SIZE
+
+class SearchPathList(object):
+
+    def __getitem__(self, key):
+        return option(GIT_OPT_GET_SEARCH_PATH, key)
+
+    def __setitem__(self, key, value):
+        option(GIT_OPT_SET_SEARCH_PATH, key, value)
+
+class Settings(object):
+    """Library-wide settings"""
+
+    __slots__ = []
+
+    _search_path = SearchPathList()
+
+    @property
+    def search_path(self):
+        """Configuration file search path.
+
+        This behaves like an array whose indices correspond to the
+        GIT_CONFIG_LEVEL_* values.  The local search path cannot be
+        changed.
+        """
+        return self._search_path
+
+    @property
+    def mwindow_size(self):
+        """Maximum mmap window size"""
+        return option(GIT_OPT_GET_MWINDOW_SIZE)
+
+    @mwindow_size.setter
+    def mwindow_size(self, value):
+        option(GIT_OPT_SET_MWINDOW_SIZE, value)

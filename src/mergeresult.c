@@ -27,116 +27,87 @@
 
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
-#include "object.h"
-#include "error.h"
-#include "types.h"
 #include "utils.h"
-#include "signature.h"
+#include "types.h"
 #include "oid.h"
-#include "tag.h"
+#include "repository.h"
+#include "mergeresult.h"
 
-
-PyDoc_STRVAR(Tag_target__doc__, "Tagged object.");
+extern PyTypeObject MergeResultType;
+extern PyTypeObject IndexType;
 
 PyObject *
-Tag_target__get__(Tag *self)
+git_merge_result_to_python(git_merge_result *merge_result)
 {
-    const git_oid *oid;
+    MergeResult *py_merge_result;
 
-    oid = git_tag_target_id(self->tag);
-    return git_oid_to_python(oid);
+    py_merge_result = PyObject_New(MergeResult, &MergeResultType);
+    if (!py_merge_result)
+        return NULL;
+
+    py_merge_result->result = merge_result;
+
+    return (PyObject*) py_merge_result;
+}
+
+void
+MergeResult_dealloc(MergeResult *self)
+{
+    git_merge_result_free(self->result);
+    PyObject_Del(self);
 }
 
 
-PyDoc_STRVAR(Tag_get_object__doc__,
-  "get_object() -> object\n"
-  "\n"
-  "Retrieves the object the current tag is pointing to.");
+PyDoc_STRVAR(MergeResult_is_uptodate__doc__, "Is up to date");
 
 PyObject *
-Tag_get_object(Tag *self)
+MergeResult_is_uptodate__get__(MergeResult *self)
 {
-    int err;
-    git_object* obj;
-
-    err = git_tag_peel(&obj, self->tag);
-    if (err < 0)
-        return Error_set(err);
-
-    return wrap_object(obj, self->repo);
+    if (git_merge_result_is_uptodate(self->result))
+        Py_RETURN_TRUE;
+    else
+        Py_RETURN_FALSE;
 }
 
-
-PyDoc_STRVAR(Tag_name__doc__, "Tag name.");
+PyDoc_STRVAR(MergeResult_is_fastforward__doc__, "Is fastforward");
 
 PyObject *
-Tag_name__get__(Tag *self)
+MergeResult_is_fastforward__get__(MergeResult *self)
 {
-    const char *name;
-    name = git_tag_name(self->tag);
-    if (!name)
-        Py_RETURN_NONE;
-    return to_unicode(name, "utf-8", "strict");
+    if (git_merge_result_is_fastforward(self->result))
+        Py_RETURN_TRUE;
+    else
+        Py_RETURN_FALSE;
 }
 
-
-PyDoc_STRVAR(Tag_tagger__doc__, "Tagger.");
+PyDoc_STRVAR(MergeResult_fastforward_oid__doc__, "Fastforward Oid");
 
 PyObject *
-Tag_tagger__get__(Tag *self)
+MergeResult_fastforward_oid__get__(MergeResult *self)
 {
-    const git_signature *signature = git_tag_tagger(self->tag);
-    if (!signature)
-        Py_RETURN_NONE;
-
-    return build_signature((Object*)self, signature, "utf-8");
+    if (git_merge_result_is_fastforward(self->result)) {
+        git_oid fastforward_oid;
+        git_merge_result_fastforward_oid(&fastforward_oid, self->result);
+        return git_oid_to_python((const git_oid *)&fastforward_oid);
+    }
+    else Py_RETURN_NONE;
 }
 
-
-PyDoc_STRVAR(Tag_message__doc__, "Tag message.");
-
-PyObject *
-Tag_message__get__(Tag *self)
-{
-    const char *message;
-    message = git_tag_message(self->tag);
-    if (!message)
-        Py_RETURN_NONE;
-    return to_unicode(message, "utf-8", "strict");
-}
-
-
-PyDoc_STRVAR(Tag__message__doc__, "Tag message (bytes).");
-
-PyObject *
-Tag__message__get__(Tag *self)
-{
-    return PyBytes_FromString(git_tag_message(self->tag));
-}
-
-PyMethodDef Tag_methods[] = {
-    METHOD(Tag, get_object, METH_NOARGS),
-    {NULL}
+PyGetSetDef MergeResult_getseters[] = {
+    GETTER(MergeResult, is_uptodate),
+    GETTER(MergeResult, is_fastforward),
+    GETTER(MergeResult, fastforward_oid),
+    {NULL},
 };
 
-PyGetSetDef Tag_getseters[] = {
-    GETTER(Tag, target),
-    GETTER(Tag, name),
-    GETTER(Tag, tagger),
-    GETTER(Tag, message),
-    GETTER(Tag, _message),
-    {NULL}
-};
+PyDoc_STRVAR(MergeResult__doc__, "MergeResult object.");
 
-
-PyDoc_STRVAR(Tag__doc__, "Tag objects.");
-
-PyTypeObject TagType = {
+PyTypeObject MergeResultType = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "_pygit2.Tag",                             /* tp_name           */
-    sizeof(Tag),                               /* tp_basicsize      */
+    "_pygit2.MergeResult",                     /* tp_name           */
+    sizeof(MergeResult),                       /* tp_basicsize      */
     0,                                         /* tp_itemsize       */
-    0,                                         /* tp_dealloc        */
+    (destructor)MergeResult_dealloc,           /* tp_dealloc        */
     0,                                         /* tp_print          */
     0,                                         /* tp_getattr        */
     0,                                         /* tp_setattr        */
@@ -152,16 +123,16 @@ PyTypeObject TagType = {
     0,                                         /* tp_setattro       */
     0,                                         /* tp_as_buffer      */
     Py_TPFLAGS_DEFAULT,                        /* tp_flags          */
-    Tag__doc__,                                /* tp_doc            */
+    MergeResult__doc__,                        /* tp_doc            */
     0,                                         /* tp_traverse       */
     0,                                         /* tp_clear          */
     0,                                         /* tp_richcompare    */
     0,                                         /* tp_weaklistoffset */
     0,                                         /* tp_iter           */
     0,                                         /* tp_iternext       */
-    Tag_methods,                               /* tp_methods        */
+    0,                                         /* tp_methods        */
     0,                                         /* tp_members        */
-    Tag_getseters,                             /* tp_getset         */
+    MergeResult_getseters,                     /* tp_getset         */
     0,                                         /* tp_base           */
     0,                                         /* tp_dict           */
     0,                                         /* tp_descr_get      */
@@ -171,3 +142,4 @@ PyTypeObject TagType = {
     0,                                         /* tp_alloc          */
     0,                                         /* tp_new            */
 };
+

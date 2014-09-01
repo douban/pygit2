@@ -105,7 +105,7 @@ Repository_dealloc(Repository *self)
     Py_CLEAR(self->index);
     Py_CLEAR(self->config);
     git_repository_free(self->repo);
-    PyObject_GC_Del(self);
+    Py_TYPE(self)->tp_free(self);
 }
 
 int
@@ -139,6 +139,7 @@ Repository_as_iter(Repository *self)
     git_odb *odb;
     int err;
     PyObject *accum = PyList_New(0);
+    PyObject *ret;
 
     err = git_repository_odb(&odb, self->repo);
     if (err < 0)
@@ -151,7 +152,10 @@ Repository_as_iter(Repository *self)
     if (err < 0)
         return Error_set(err);
 
-    return PyObject_GetIter(accum);
+    ret = PyObject_GetIter(accum);
+    Py_DECREF(accum);
+
+    return ret;
 }
 
 
@@ -864,11 +868,11 @@ Repository_create_commit(Repository *self, PyObject *args)
 
     len = py_oid_to_git_oid(py_oid, &oid);
     if (len == 0)
-        goto out;
+        return NULL;
 
     message = py_str_borrow_c_str(&tmessage, py_message, encoding);
     if (message == NULL)
-        goto out;
+        return NULL;
 
     err = git_tree_lookup_prefix(&tree, self->repo, &oid, len);
     if (err < 0) {
@@ -1402,7 +1406,7 @@ Repository_default_signature__get__(Repository *self)
     if ((err = git_signature_default(&sig, self->repo)) < 0)
         return Error_set(err);
 
-    return build_signature((Object*) self, sig, "utf-8");
+    return build_signature(NULL, sig, "utf-8");
 }
 
 PyDoc_STRVAR(Repository_checkout_head__doc__,

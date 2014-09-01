@@ -479,15 +479,24 @@ class CloneRepositoryTest(utils.NoRepoTestCase):
         self.assertFalse(repo.is_empty)
         self.assertEqual(repo.remotes[0].name, "custom_remote")
 
-    def test_clone_fetch_spec(self):
-        repo_path = "./test/data/testrepo.git/"
+
+    # def test_clone_fetch_spec(self):
+    #     repo_path = "./test/data/testrepo.git/"
+    #     repo = clone_repository(
+    #         repo_path, self._temp_dir)
+    #     self.assertFalse(repo.is_empty)
+    #     # FIXME: When pygit2 retrieve the fetchspec we passed to git clone.
+    #     # fetchspec seems to be going through, but the Repository class is
+    #     # not getting it.
+    #     # self.assertEqual(repo.remotes[0].fetchspec, "refs/heads/test")
+
+    def test_clone_with_credentials(self):
+        credentials = pygit2.UserPass("libgit2", "libgit2")
         repo = clone_repository(
-            repo_path, self._temp_dir)
+            "https://bitbucket.org/libgit2/testgitrepository.git",
+            self._temp_dir, credentials=credentials)
+
         self.assertFalse(repo.is_empty)
-        # FIXME: When pygit2 retrieve the fetchspec we passed to git clone.
-        # fetchspec seems to be going through, but the Repository class is
-        # not getting it.
-        # self.assertEqual(repo.remotes[0].fetchspec, "refs/heads/test")
 
     def test_clone_push_spec(self):
         repo_path = "./test/data/testrepo.git/"

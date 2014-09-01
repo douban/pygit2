@@ -71,7 +71,7 @@ Index_dealloc(Index* self)
     PyObject_GC_UnTrack(self);
     Py_XDECREF(self->repo);
     git_index_free(self->index);
-    PyObject_GC_Del(self);
+    Py_TYPE(self)->tp_free(self);
 }
 
 PyObject *
@@ -598,7 +598,7 @@ void
 IndexIter_dealloc(IndexIter *self)
 {
     Py_CLEAR(self->owner);
-    PyObject_Del(self);
+    Py_TYPE(self)->tp_free(self);
 }
 
 PyObject *
@@ -660,8 +660,9 @@ IndexEntry_init(IndexEntry *self, PyObject *args, PyObject *kwds)
         return -1;
 
     memset(&self->entry, 0, sizeof(struct git_index_entry));
-    if (c_path)
-        self->entry.path = c_path;
+    self->entry.path = strdup(c_path);
+    if (!self->entry.path)
+        return -1;
 
     if (id)
         git_oid_cpy(&self->entry.id, &id->oid);
@@ -675,6 +676,7 @@ IndexEntry_init(IndexEntry *self, PyObject *args, PyObject *kwds)
 void
 IndexEntry_dealloc(IndexEntry *self)
 {
+    free(self->entry.path);
     PyObject_Del(self);
 }
 
