@@ -10,3 +10,6 @@ pygit2/__pycache__
 *.egg-info
 *.swp
 docs/_build
+vendor/libgit2/CMakeCache.txt
+vendor/libgit2/CMakeFiles/
+vendor/libgit2/Makefile
