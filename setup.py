@@ -84,8 +84,19 @@ else:
         if not os.path.isfile(libgit2_lib_path):
             os.chdir(libgit2_dir)
             print('build libgit2 embed')
-            popen = Popen(['make', '-f', 'Makefile.embed'], stdout=PIPE, stderr=PIPE)
+            popen = Popen(['cmake', '.', '-DBUILD_CLAR=OFF', '-DTHREADSAFE=ON',
+                           '-DBUILD_SHARED_LIBS=OFF', '-DCMAKE_C_FLAGS=-fPIC'],
+                           stdout=PIPE, stderr=PIPE)
             stdoutdata, stderrdata = popen.communicate()
+            if popen.returncode != 0:
+                print(stderrdata)
+                sys.exit()
+            popen = Popen(['cmake', '--build', '.'],
+                           stdout=PIPE, stderr=PIPE)
+            stdoutdata, stderrdata = popen.communicate()
+            if popen.returncode != 0:
+                print(stderrdata)
+                sys.exit()
             if popen.returncode != 0:
                 print(stderrdata)
                 sys.exit()
@@ -97,7 +108,8 @@ else:
         pygit2_libs = ['git2_embed']
         if compiler.has_function('clock_gettime', libraries=['rt']):
             pygit2_libs.append('rt')
-
+pygit2_libs.append('ssl')
+pygit2_libs.append('crypto')
 pygit2_exts = [os.path.join('src', name) for name in os.listdir('src')
                if name.endswith('.c')]
 

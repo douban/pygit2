@@ -44,31 +44,65 @@ for the topic), send a pull request.
 Authors
 ==============
 
-57 developers have contributed at least 1 commit to pygit2::
+62 developers have contributed at least 1 commit to pygit2::
 
-  J. David Ibáñez            Brodie Rao                 Adam Spiers
-  Nico von Geyso             David Versmisse            Alexander Bayandin
-  Carlos Martín Nieto        Rémi Duraffort             Andrew Chin
-  W. Trevor King             Sebastian Thiel            András Veres-Szentkirályi
-  Dave Borowitz              Fraser Tweedale            Benjamin Kircher
-  Daniel Rodríguez Troitiño  Han-Wen Nienhuys           Benjamin Pollack
-  Richo Healey               Petr Viktorin              Bryan O'Sullivan
-  Christian Boos             Alex Chamberlain           David Fischer
-  Julien Miotte              Amit Bakshi                David Sanders
-  Xu Tao                     Andrey Devyatkin           Eric Davis
-  Jose Plana                 Ben Davis                  Erik van Zijst
-  Martin Lenders             Eric Schrijver             Ferengee
-  Petr Hosek                 Hervé Cauwelier            Gustavo Di Pietro
-  Victor Garcia              Huang Huang                Hugh Cole-Baker
-  Xavier Delannoy            Jared Flatow               Josh Bleecher Snyder
-  Yonggang Luo               Jiunn Haur Lim             Jun Omae
-  Valentin Haenel            Sarath Lakshman            Óscar San José
-  Bernardo Heynemann         Vicent Marti               Ridge Kennedy
-  John Szakmeister           Zoran Zaric                Rui Abreu Ferreira
+  J. David Ibáñez            Rémi Duraffort             András Veres-Szentkirályi
+  Nico von Geyso             Sebastian Thiel            Benjamin Kircher
+  Carlos Martín Nieto        Fraser Tweedale            Benjamin Pollack
+  W. Trevor King             Han-Wen Nienhuys           Bryan O'Sullivan
+  Dave Borowitz              Leonardo Rhodes            David Fischer
+  Daniel Rodríguez Troitiño  Petr Viktorin              David Sanders
+  Richo Healey               Alex Chamberlain           Devaev Maxim
+  Christian Boos             Amit Bakshi                Eric Davis
+  Julien Miotte              Andrey Devyatkin           Erik Meusel
+  Xu Tao                     Ben Davis                  Erik van Zijst
+  Jose Plana                 Eric Schrijver             Ferengee
+  Martin Lenders             Hervé Cauwelier            Gustavo Di Pietro
+  Petr Hosek                 Huang Huang                Hugh Cole-Baker
+  Victor Garcia              Jared Flatow               Josh Bleecher Snyder
+  Xavier Delannoy            Jiunn Haur Lim             Jun Omae
+  Yonggang Luo               Sarath Lakshman            Óscar San José
+  Valentin Haenel            Vicent Marti               Ridge Kennedy
+  Bernardo Heynemann         Zoran Zaric                Rui Abreu Ferreira
+  John Szakmeister           Adam Spiers                Thomas Kluyver
+  Brodie Rao                 Alexander Bayandin         earl
+  David Versmisse            Andrew Chin
 
 
 Changelog
 ==============
+
+0.20.3 (2014-04-02)
+-------------------
+
+- A number of memory issues fixed
+  `#328 <https://github.com/libgit2/pygit2/pull/328>`_
+  `#348 <https://github.com/libgit2/pygit2/pull/348>`_
+  `#353 <https://github.com/libgit2/pygit2/pull/353>`_
+  `#355 <https://github.com/libgit2/pygit2/pull/355>`_
+  `#356 <https://github.com/libgit2/pygit2/pull/356>`_
+- Compatibility fixes for
+  PyPy (`#338 <https://github.com/libgit2/pygit2/pull/338>`_),
+  Visual Studio 2008 (`#343 <https://github.com/libgit2/pygit2/pull/343>`_)
+  and Python 3.3 (`#351 <https://github.com/libgit2/pygit2/pull/351>`_)
+- Make the sort mode parameter in ``Repository.walk(...)`` optional
+  `#337 <https://github.com/libgit2/pygit2/pull/337>`_
+- New ``Object.peel(...)``
+  `#342 <https://github.com/libgit2/pygit2/pull/342>`_
+- New ``Index.add_all(...)``
+  `#344 <https://github.com/libgit2/pygit2/pull/344>`_
+- Introduce support for libgit2 options
+  `#350 <https://github.com/libgit2/pygit2/pull/350>`_
+- More informative repr for ``Repository`` objects
+  `#352 <https://github.com/libgit2/pygit2/pull/352>`_
+- Introduce support for credentials
+  `#354 <https://github.com/libgit2/pygit2/pull/354>`_
+- Several documentation fixes
+  `#302 <https://github.com/libgit2/pygit2/issues/302>`_
+  `#336 <https://github.com/libgit2/pygit2/issues/336>`_
+- Tests, remove temporary files
+  `#341 <https://github.com/libgit2/pygit2/pull/341>`_
+
 
 0.20.2 (2014-02-04)
 -------------------

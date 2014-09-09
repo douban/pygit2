@@ -190,7 +190,7 @@ typedef struct {
     PyObject_HEAD
     Object *obj;
     const git_signature *signature;
-    const char *encoding;
+    char *encoding;
 } Signature;
 
 
@@ -201,6 +201,7 @@ typedef struct {
     git_remote *remote;
     /* Callbacks for network events */
     PyObject *progress;
+    PyObject *credentials;
     PyObject *transfer_progress;
     PyObject *update_tips;
 } Remote;
