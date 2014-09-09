@@ -97,8 +97,6 @@ else:
             if popen.returncode != 0:
                 print(stderrdata)
                 sys.exit()
-            popen = Popen(['make'], stdout=PIPE, stderr=PIPE)
-            stdoutdata, stderrdata = popen.communicate()
             if popen.returncode != 0:
                 print(stderrdata)
                 sys.exit()
